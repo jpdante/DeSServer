@@ -21,7 +21,7 @@ namespace HtcPlugin.DeSServer.Manager {
             return Task.CompletedTask;
         }
 
-        public Ghost[] GetWanderingGhosts(string playerId, int max, int blockId) {
+        public Ghost[] GetWanderingGhosts(string playerId, uint blockId, int max) {
             return _wanderingGhosts.Where(x => !x.PlayerId.Equals(playerId) && x.BlockId == blockId).Take(max).OrderBy(a => Guid.NewGuid()).ToArray();
         }
 

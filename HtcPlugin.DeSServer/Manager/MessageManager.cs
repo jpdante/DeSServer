@@ -19,7 +19,7 @@ namespace HtcPlugin.DeSServer.Manager {
             return Task.CompletedTask;
         }
 
-        public async Task<Message[]> GetMessages(string playerId, int blockId, int max) {
+        public async Task<Message[]> GetMessages(string playerId, uint blockId, int max) {
             await using var conn = await DatabaseContext.GetConnection();
             var messages = new List<Message>();
 
@@ -30,9 +30,9 @@ namespace HtcPlugin.DeSServer.Manager {
                 await using (var reader = await cmd.ExecuteReaderAsync()) {
                     while (await reader.ReadAsync()) {
                         messages.Add(new Message {
-                            Id = reader.GetInt32(0),
+                            Id = reader.GetUInt32(0),
                             PlayerId = reader.GetString(1),
-                            BlockId = reader.GetInt32(2),
+                            BlockId = reader.GetUInt32(2),
                             PosX = reader.GetFloat(3),
                             PosY = reader.GetFloat(4),
                             PosZ = reader.GetFloat(5),
@@ -55,9 +55,9 @@ namespace HtcPlugin.DeSServer.Manager {
                 await using (var reader = await cmd.ExecuteReaderAsync()) {
                     while (await reader.ReadAsync()) {
                         messages.Add(new Message {
-                            Id = reader.GetInt32(0),
+                            Id = reader.GetUInt32(0),
                             PlayerId = reader.GetString(1),
-                            BlockId = reader.GetInt32(2),
+                            BlockId = reader.GetUInt32(2),
                             PosX = reader.GetFloat(3),
                             PosY = reader.GetFloat(4),
                             PosZ = reader.GetFloat(5),

@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 namespace HtcPlugin.DeSServer.Model {
     public class Replay {
 
-        public int Id { get; set; }
+        public uint Id { get; set; }
         public string PlayerId { get; set; }
-        public int BlockId { get; set; }
+        public uint BlockId { get; set; }
         public float PosX { get; set; }
         public float PosY { get; set; }
         public float PosZ { get; set; }
@@ -21,7 +21,7 @@ namespace HtcPlugin.DeSServer.Model {
 
         public async Task<byte[]> GenerateHeader() {
             await using var memoryStream = new MemoryStream();
-            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) Id));
+            await memoryStream.WriteAsync(BitConverter.GetBytes(Id));
             await memoryStream.WriteAsync(Encoding.ASCII.GetBytes($"{PlayerId}\x00"));
             await memoryStream.WriteAsync(BitConverter.GetBytes(BlockId));
             await memoryStream.WriteAsync(BitConverter.GetBytes(PosX));

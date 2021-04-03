@@ -4,7 +4,7 @@ namespace HtcPlugin.DeSServer.Model {
     public class Ghost {
 
         public string PlayerId { get; private set; }
-        public int BlockId { get; private set; }
+        public uint BlockId { get; private set; }
         public DateTime CreationTime { get; private set; }
         public byte[] ReplayData { get; private set; }
 

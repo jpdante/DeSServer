@@ -260,13 +260,13 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!data.TryGetValue("characterID", out string playerId)) throw new HttpException(500, "Missing characterID.");
             if (!data.TryGetValue("blockID", out string blockIdRaw)) throw new HttpException(500, "Missing blockID.");
             if (!data.TryGetValue("replayNum", out string messageNumRaw)) throw new HttpException(500, "Missing replayNum.");
-            if (!int.TryParse(blockIdRaw, out int blockId)) throw new HttpException(500, "Failed to parse blockID.");
+            if (!uint.TryParse(blockIdRaw, out uint blockId)) throw new HttpException(500, "Failed to parse blockID.");
             if (!int.TryParse(messageNumRaw, out int messageNum)) throw new HttpException(500, "Failed to parse replayNum.");
-            Message[] replays = await HtcPlugin.Server.MessageManager.GetMessages(playerId, blockId, messageNum);
+            Message[] messages = await HtcPlugin.Server.MessageManager.GetMessages(playerId, blockId, messageNum);
             await using var memoryStream = new MemoryStream();
-            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) replays.Length));
-            foreach (var replay in replays) {
-                await memoryStream.WriteAsync(await replay.GenerateHeader());
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) messages.Length));
+            foreach (var message in messages) {
+                await memoryStream.WriteAsync(await message.GenerateHeader());
             }
             string responseData = await PrepareResponse(httpContext, 0x1f, memoryStream.ToArray());
             await SendResponse(httpContext, responseData);
@@ -300,7 +300,7 @@ namespace HtcPlugin.DeSServer.Controller {
             Dictionary<string, string> data = ParamData(dataRaw);
             if (!data.TryGetValue("blockID", out string blockIdRaw)) throw new HttpException(500, "Missing blockID.");
             if (!data.TryGetValue("replayNum", out string replayNumRaw)) throw new HttpException(500, "Missing replayNum.");
-            if (!int.TryParse(blockIdRaw, out int blockId)) throw new HttpException(500, "Failed to parse blockID.");
+            if (!uint.TryParse(blockIdRaw, out uint blockId)) throw new HttpException(500, "Failed to parse blockID.");
             if (!int.TryParse(replayNumRaw, out int replayNum)) throw new HttpException(500, "Failed to parse replayNum.");
             Replay[] replays = await HtcPlugin.Server.ReplayManager.GetReplays(blockId, replayNum);
             await using var memoryStream = new MemoryStream();
@@ -334,9 +334,9 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!data.TryGetValue("characterID", out string playerId)) throw new HttpException(500, "Missing characterID.");
             if (!data.TryGetValue("blockID", out string blockIdRaw)) throw new HttpException(500, "Missing blockID.");
             if (!data.TryGetValue("maxGhostNum", out string maxGhostNumRaw)) throw new HttpException(500, "Missing maxGhostNum.");
-            if (!int.TryParse(blockIdRaw, out int blockId)) throw new HttpException(500, "Failed to parse blockID.");
+            if (!uint.TryParse(blockIdRaw, out uint blockId)) throw new HttpException(500, "Failed to parse blockID.");
             if (!int.TryParse(maxGhostNumRaw, out int maxGhostNum)) throw new HttpException(500, "Failed to parse maxGhostNum.");
-            Ghost[] ghosts = HtcPlugin.Server.GhostManager.GetWanderingGhosts(playerId, maxGhostNum, blockId);
+            Ghost[] ghosts = HtcPlugin.Server.GhostManager.GetWanderingGhosts(playerId, blockId, maxGhostNum);
             await using var memoryStream = new MemoryStream();
             await memoryStream.WriteAsync(BitConverter.GetBytes((uint) 0));
             await memoryStream.WriteAsync(BitConverter.GetBytes((uint) ghosts.Length));

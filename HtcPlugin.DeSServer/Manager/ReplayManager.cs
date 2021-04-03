@@ -18,7 +18,7 @@ namespace HtcPlugin.DeSServer.Manager {
             return Task.CompletedTask;
         }
 
-        public async Task<Replay[]> GetReplays(int blockId, int max) {
+        public async Task<Replay[]> GetReplays(uint blockId, int max) {
             await using var conn = await DatabaseContext.GetConnection();
             await using var cmd = new MySqlCommand("SELECT id, player_id, block_id, pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, msg_id, main_msg_id, msg_cate_id FROM replays WHERE block_id = @blockId ORDER BY id DESC LIMIT @max;", conn);
             cmd.Parameters.AddWithValue("blockId", blockId);
@@ -27,9 +27,9 @@ namespace HtcPlugin.DeSServer.Manager {
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync()) {
                 replays.Add(new Replay {
-                    Id = reader.GetInt32(0),
+                    Id = reader.GetUInt32(0),
                     PlayerId = reader.GetString(1),
-                    BlockId = reader.GetInt32(2),
+                    BlockId = reader.GetUInt32(2),
                     PosX = reader.GetFloat(3),
                     PosY = reader.GetFloat(4),
                     PosZ = reader.GetFloat(5),

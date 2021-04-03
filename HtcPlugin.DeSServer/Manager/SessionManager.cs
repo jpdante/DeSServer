@@ -19,7 +19,7 @@ namespace HtcPlugin.DeSServer.Manager {
             return Task.CompletedTask;
         }
 
-        public void DeleteSession(string playerId) {
+        public void SetOutOfBlock(string playerId) {
 
         }
     }

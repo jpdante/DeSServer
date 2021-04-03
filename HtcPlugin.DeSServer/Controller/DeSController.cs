@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -18,7 +19,7 @@ namespace HtcPlugin.DeSServer.Controller {
         private static async Task<string> PrepareResponse(HttpContext httpContext, byte cmd, byte[] data) {
             var memoryStream = new MemoryStream();
             memoryStream.WriteByte(cmd);
-            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) data.Length + 5));
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint)data.Length + 5));
             await memoryStream.WriteAsync(data);
             return Convert.ToBase64String(memoryStream.ToArray()) + "\n";
         }
@@ -93,15 +94,12 @@ namespace HtcPlugin.DeSServer.Controller {
                 HtcPlugin.Logger.LogInfo($"        {key}: \"{value}\"");
             }
             HtcPlugin.Logger.LogInfo($"    }},");
-            if (data != null)  HtcPlugin.Logger.LogInfo($"    Body: {data}");
+            if (data != null) HtcPlugin.Logger.LogInfo($"    Body: {data}");
             HtcPlugin.Logger.LogInfo($"}}");
         }
 
         [HttpPost("/demons-souls-us/ss.info")]
         public static async Task SsInfo(HttpContext httpContext) {
-            string dataRaw = await GetAndDecryptData(httpContext);
-            PrintRequest(httpContext, dataRaw);
-            Dictionary<string, string> data = ParamData(dataRaw);
             httpContext.Response.StatusCode = 200;
             await httpContext.Response.WriteAsync(
                 "<ss>0</ss>\r\n" +
@@ -178,7 +176,7 @@ namespace HtcPlugin.DeSServer.Controller {
             await using var memoryStream = new MemoryStream();
             for (var i = 0; i < 7; i++) {
                 await memoryStream.WriteAsync(BitConverter.GetBytes(tendency));
-                await memoryStream.WriteAsync(BitConverter.GetBytes((short) 0));
+                await memoryStream.WriteAsync(BitConverter.GetBytes((short)0));
             }
             string responseData = await PrepareResponse(httpContext, 0x0e, memoryStream.ToArray());
             await SendResponse(httpContext, responseData);
@@ -189,7 +187,7 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
-            string responseData = await PrepareResponse(httpContext, 0x09, new [] { (byte) '\x01' });
+            string responseData = await PrepareResponse(httpContext, 0x09, new[] { (byte)'\x01' });
             await SendResponse(httpContext, responseData);
         }
 
@@ -264,7 +262,7 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!int.TryParse(messageNumRaw, out int messageNum)) throw new HttpException(500, "Failed to parse replayNum.");
             Message[] messages = await HtcPlugin.Server.MessageManager.GetMessages(playerId, blockId, messageNum);
             await using var memoryStream = new MemoryStream();
-            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) messages.Length));
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint)messages.Length));
             foreach (var message in messages) {
                 await memoryStream.WriteAsync(await message.GenerateHeader());
             }
@@ -277,6 +275,48 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+
+            if (!data.TryGetValue("characterID", out string playerId)) throw new HttpException(500, "Missing characterID.");
+            if (!data.TryGetValue("blockID", out string blockIdRaw)) throw new HttpException(500, "Missing blockID.");
+            if (!data.TryGetValue("posx", out string posXRaw)) throw new HttpException(500, "Missing posx.");
+            if (!data.TryGetValue("posy", out string posYRaw)) throw new HttpException(500, "Missing posy.");
+            if (!data.TryGetValue("posz", out string posZRaw)) throw new HttpException(500, "Missing posz.");
+            if (!data.TryGetValue("angx", out string rotXRaw)) throw new HttpException(500, "Missing angx.");
+            if (!data.TryGetValue("angy", out string rotYRaw)) throw new HttpException(500, "Missing angy.");
+            if (!data.TryGetValue("angz", out string rotZRaw)) throw new HttpException(500, "Missing angz.");
+            if (!data.TryGetValue("messageID", out string messageIdRaw)) throw new HttpException(500, "Missing messageID.");
+            if (!data.TryGetValue("mainMsgID", out string mainMsgIdRaw)) throw new HttpException(500, "Missing mainMsgID.");
+            if (!data.TryGetValue("addMsgCateID", out string addMsgCateIdRaw)) throw new HttpException(500, "Missing addMsgCateID.");
+
+            if (!uint.TryParse(blockIdRaw, out uint blockId)) throw new HttpException(500, "Failed to parse blockID.");
+            if (!float.TryParse(posXRaw, NumberStyles.Float, CultureInfo.InvariantCulture, out float posX)) throw new HttpException(500, "Failed to parse posx.");
+            if (!float.TryParse(posYRaw, NumberStyles.Float, CultureInfo.InvariantCulture, out float posY)) throw new HttpException(500, "Failed to parse posy.");
+            if (!float.TryParse(posZRaw, NumberStyles.Float, CultureInfo.InvariantCulture, out float posZ)) throw new HttpException(500, "Failed to parse posz.");
+            if (!float.TryParse(rotXRaw, NumberStyles.Float, CultureInfo.InvariantCulture, out float rotX)) throw new HttpException(500, "Failed to parse angx.");
+            if (!float.TryParse(rotYRaw, NumberStyles.Float, CultureInfo.InvariantCulture, out float rotY)) throw new HttpException(500, "Failed to parse angy.");
+            if (!float.TryParse(rotZRaw, NumberStyles.Float, CultureInfo.InvariantCulture, out float rotZ)) throw new HttpException(500, "Failed to parse angz.");
+            if (!int.TryParse(messageIdRaw, out int messageId)) throw new HttpException(500, "Failed to parse messageID.");
+            if (!int.TryParse(mainMsgIdRaw, out int mainMsgId)) throw new HttpException(500, "Failed to parse mainMsgID.");
+            if (!int.TryParse(addMsgCateIdRaw, out int addMsgCateId)) throw new HttpException(500, "Failed to parse messageID.");
+
+            var message = new Message {
+                PlayerId = playerId,
+                BlockId = blockId,
+                PosX = posX,
+                PosY = posY,
+                PosZ = posZ,
+                RotX = rotX,
+                RotY = rotY,
+                RotZ = rotZ,
+                MsgId = messageId,
+                MainMsgId = mainMsgId,
+                MsgCateId = addMsgCateId,
+                Rating = 0
+            };
+
+            await HtcPlugin.Server.MessageManager.AddMessage(message);
+            string responseData = await PrepareResponse(httpContext, 0x1d, new[] { (byte)'\x01' });
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/updateBloodMessageGrade.spd")]
@@ -284,6 +324,11 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            if (!data.TryGetValue("bmID", out string bmIdRaw)) throw new HttpException(500, "Missing bmID.");
+            if (!uint.TryParse(bmIdRaw, out uint bmId)) throw new HttpException(500, "Failed to parse bmID.");
+            await HtcPlugin.Server.MessageManager.DeleteMessage(bmId);
+            string responseData = await PrepareResponse(httpContext, 0x27, new[] { (byte)'\x01' });
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/deleteBloodMessage.spd")]
@@ -291,6 +336,11 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            if (!data.TryGetValue("bmID", out string bmIdRaw)) throw new HttpException(500, "Missing bmID.");
+            if (!uint.TryParse(bmIdRaw, out uint bmId)) throw new HttpException(500, "Failed to parse bmID.");
+            await HtcPlugin.Server.MessageManager.RecommendMessage(bmId);
+            string responseData = await PrepareResponse(httpContext, 0x2a, new[] { (byte)'\x01' });
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/getReplayList.spd")]
@@ -304,7 +354,7 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!int.TryParse(replayNumRaw, out int replayNum)) throw new HttpException(500, "Failed to parse replayNum.");
             Replay[] replays = await HtcPlugin.Server.ReplayManager.GetReplays(blockId, replayNum);
             await using var memoryStream = new MemoryStream();
-            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) replays.Length));
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint)replays.Length));
             foreach (var replay in replays) {
                 await memoryStream.WriteAsync(await replay.GenerateHeader());
             }
@@ -338,12 +388,12 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!int.TryParse(maxGhostNumRaw, out int maxGhostNum)) throw new HttpException(500, "Failed to parse maxGhostNum.");
             Ghost[] ghosts = HtcPlugin.Server.GhostManager.GetWanderingGhosts(playerId, blockId, maxGhostNum);
             await using var memoryStream = new MemoryStream();
-            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) 0));
-            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) ghosts.Length));
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint)0));
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint)ghosts.Length));
             foreach (var ghost in ghosts) {
                 string replayData64 = Convert.ToBase64String(ghost.ReplayData);
                 byte[] replayData = Encoding.ASCII.GetBytes(replayData64);
-                await memoryStream.WriteAsync(BitConverter.GetBytes((uint) replayData.Length));
+                await memoryStream.WriteAsync(BitConverter.GetBytes((uint)replayData.Length));
                 await memoryStream.WriteAsync(replayData);
             }
             string responseData = await PrepareResponse(httpContext, 0x11, memoryStream.ToArray());
@@ -383,6 +433,10 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            if (!data.TryGetValue("characterID", out string playerId)) throw new HttpException(500, "Missing characterID.");
+            HtcPlugin.Server.SessionManager.SetOutOfBlock(playerId);
+            string responseData = await PrepareResponse(httpContext, 0x15, new[] { (byte)'\x01' });
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/summonOtherCharacter.spd")]

@@ -4,11 +4,13 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using HtcPlugin.DeSServer.Model;
 using HtcSharp.Core.Logging.Abstractions;
 using HtcSharp.HttpModule.Http.Abstractions;
 using HtcSharp.HttpModule.Http.Abstractions.Extensions;
 using HtcSharp.HttpModule.Mvc;
 using Microsoft.Extensions.Primitives;
+// ReSharper disable InconsistentNaming
 
 namespace HtcPlugin.DeSServer.Controller {
     public class DeSController {
@@ -28,6 +30,15 @@ namespace HtcPlugin.DeSServer.Controller {
             httpContext.Response.Headers.Add("Connection", "close");
             httpContext.Response.Headers.Add("Content-Type", "text/html; charset=UTF-8");
             await httpContext.Response.WriteAsync(data);
+            HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} <= {{");
+            HtcPlugin.Logger.LogInfo($"    Headers {{");
+            foreach (KeyValuePair<string, StringValues> headers in httpContext.Response.Headers) {
+                HtcPlugin.Logger.LogInfo($"        {headers.Key}: \"{headers.Value}\"");
+            }
+            HtcPlugin.Logger.LogInfo($"    }}");
+            HtcPlugin.Logger.LogInfo($"    Body: {data.Remove(data.Length - 1, 1)}");
+            //HtcPlugin.Logger.LogInfo($"    Decoded Body: {Encoding.ASCII.GetString(Convert.FromBase64String(data.Remove(data.Length - 1, 1)))}");
+            HtcPlugin.Logger.LogInfo($"}}");
         }
 
         private static async Task<string> GetAndDecryptData(HttpContext httpContext) {
@@ -73,7 +84,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         private static void PrintRequest(HttpContext httpContext, string data = null) {
-            HtcPlugin.Logger.LogInfo($"{httpContext.Request.Method} {httpContext.Request.Path} {{");
+            HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} => {httpContext.Request.Method} {httpContext.Request.Path} {{");
             HtcPlugin.Logger.LogInfo($"    Host: {httpContext.Request.Host}");
             HtcPlugin.Logger.LogInfo($"    ContentType: {httpContext.Request.ContentType}");
             HtcPlugin.Logger.LogInfo($"    Query: {httpContext.Request.QueryString}");
@@ -150,6 +161,11 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            if (!data.TryGetValue("characterID", out string characterId)) throw new HttpException(500, "Missing character id.");
+            if (!data.TryGetValue("index", out string index)) throw new HttpException(500, "Missing index.");
+            string response = await HtcPlugin.Server.PlayerManager.InitPlayer(httpContext.Connection.RemoteIpAddress.ToString(), characterId, index);
+            string responseData = await PrepareResponse(httpContext, 0x17, Encoding.ASCII.GetBytes(response));
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/getQWCData.spd")]
@@ -157,6 +173,15 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            if (!HtcPlugin.Server.PlayerManager.GetPlayerByHost(httpContext.Connection.RemoteIpAddress.ToString(), out var player)) throw new HttpException(500, "Failed to get character, please relogin.");
+            short tendency = await player.GetWorldTendency();
+            await using var memoryStream = new MemoryStream();
+            for (var i = 0; i < 7; i++) {
+                await memoryStream.WriteAsync(BitConverter.GetBytes(tendency));
+                await memoryStream.WriteAsync(BitConverter.GetBytes((short) 0));
+            }
+            string responseData = await PrepareResponse(httpContext, 0x0e, memoryStream.ToArray());
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/addQWCData.spd")]
@@ -164,6 +189,8 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            string responseData = await PrepareResponse(httpContext, 0x09, new [] { (byte) '\x01' });
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/getMultiPlayGrade.spd")]
@@ -171,6 +198,16 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            if (!data.TryGetValue("NPID", out string NPID)) throw new HttpException(500, "Missing NPID.");
+            if (!HtcPlugin.Server.PlayerManager.GetPlayerByNPID(NPID, out var player)) throw new HttpException(500, "Failed to get character, please relogin.");
+            int[] grades = await player.GetMultiPlayGrade();
+            await using var memoryStream = new MemoryStream();
+            memoryStream.WriteByte(0x01);
+            foreach (int grade in grades) {
+                await memoryStream.WriteAsync(BitConverter.GetBytes(grade));
+            }
+            string responseData = await PrepareResponse(httpContext, 0x28, memoryStream.ToArray());
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/getBloodMessageGrade.spd")]
@@ -178,6 +215,14 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            if (!data.TryGetValue("NPID", out string NPID)) throw new HttpException(500, "Missing NPID.");
+            if (!HtcPlugin.Server.PlayerManager.GetPlayerByNPID(NPID, out var player)) throw new HttpException(500, "Failed to get character, please relogin.");
+            int rating = await player.GetBloodMessageGrade();
+            await using var memoryStream = new MemoryStream();
+            memoryStream.WriteByte(0x01);
+            await memoryStream.WriteAsync(BitConverter.GetBytes(rating));
+            string responseData = await PrepareResponse(httpContext, 0x29, memoryStream.ToArray());
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/getTimeMessage.spd")]
@@ -185,6 +230,8 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            string responseData = await PrepareResponse(httpContext, 0x22, Encoding.ASCII.GetBytes("\x00\x00\x00"));
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/getAgreement.spd")]
@@ -192,6 +239,8 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            string responseData = await PrepareResponse(httpContext, 0x01, Encoding.ASCII.GetBytes("\x01\x01Unknown response.\r\n\x00"));
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/addNewAccount.spd")]
@@ -199,6 +248,8 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            string responseData = await PrepareResponse(httpContext, 0x01, Encoding.ASCII.GetBytes("\x01\x01Unknown response.\r\n\x00"));
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/getBloodMessage.spd")]
@@ -206,6 +257,19 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            if (!data.TryGetValue("characterID", out string playerId)) throw new HttpException(500, "Missing characterID.");
+            if (!data.TryGetValue("blockID", out string blockIdRaw)) throw new HttpException(500, "Missing blockID.");
+            if (!data.TryGetValue("replayNum", out string messageNumRaw)) throw new HttpException(500, "Missing replayNum.");
+            if (!int.TryParse(blockIdRaw, out int blockId)) throw new HttpException(500, "Failed to parse blockID.");
+            if (!int.TryParse(messageNumRaw, out int messageNum)) throw new HttpException(500, "Failed to parse replayNum.");
+            Message[] replays = await HtcPlugin.Server.MessageManager.GetMessages(playerId, blockId, messageNum);
+            await using var memoryStream = new MemoryStream();
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) replays.Length));
+            foreach (var replay in replays) {
+                await memoryStream.WriteAsync(await replay.GenerateHeader());
+            }
+            string responseData = await PrepareResponse(httpContext, 0x1f, memoryStream.ToArray());
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/addBloodMessage.spd")]
@@ -234,6 +298,18 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            if (!data.TryGetValue("blockID", out string blockIdRaw)) throw new HttpException(500, "Missing blockID.");
+            if (!data.TryGetValue("replayNum", out string replayNumRaw)) throw new HttpException(500, "Missing replayNum.");
+            if (!int.TryParse(blockIdRaw, out int blockId)) throw new HttpException(500, "Failed to parse blockID.");
+            if (!int.TryParse(replayNumRaw, out int replayNum)) throw new HttpException(500, "Failed to parse replayNum.");
+            Replay[] replays = await HtcPlugin.Server.ReplayManager.GetReplays(blockId, replayNum);
+            await using var memoryStream = new MemoryStream();
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) replays.Length));
+            foreach (var replay in replays) {
+                await memoryStream.WriteAsync(await replay.GenerateHeader());
+            }
+            string responseData = await PrepareResponse(httpContext, 0x1f, memoryStream.ToArray());
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/getReplayData.spd")]
@@ -255,6 +331,23 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+            if (!data.TryGetValue("characterID", out string playerId)) throw new HttpException(500, "Missing characterID.");
+            if (!data.TryGetValue("blockID", out string blockIdRaw)) throw new HttpException(500, "Missing blockID.");
+            if (!data.TryGetValue("maxGhostNum", out string maxGhostNumRaw)) throw new HttpException(500, "Missing maxGhostNum.");
+            if (!int.TryParse(blockIdRaw, out int blockId)) throw new HttpException(500, "Failed to parse blockID.");
+            if (!int.TryParse(maxGhostNumRaw, out int maxGhostNum)) throw new HttpException(500, "Failed to parse maxGhostNum.");
+            Ghost[] ghosts = HtcPlugin.Server.GhostManager.GetWanderingGhosts(playerId, maxGhostNum, blockId);
+            await using var memoryStream = new MemoryStream();
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) 0));
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) ghosts.Length));
+            foreach (var ghost in ghosts) {
+                string replayData64 = Convert.ToBase64String(ghost.ReplayData);
+                byte[] replayData = Encoding.ASCII.GetBytes(replayData64);
+                await memoryStream.WriteAsync(BitConverter.GetBytes((uint) replayData.Length));
+                await memoryStream.WriteAsync(replayData);
+            }
+            string responseData = await PrepareResponse(httpContext, 0x11, memoryStream.ToArray());
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/setWanderingGhost.spd")]

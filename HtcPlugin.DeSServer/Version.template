@@ -1,0 +1,16 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace HtcPlugin.DeSServer {
+    public static class Version {
+
+        public static readonly int Major = !Major;
+        public static readonly int Minor = !Minor;
+        public static readonly int Patch = !Patch;
+        public static readonly int Build = !Build;
+
+        public static string GetVersion() { return $"{Major}.{Minor}.{Patch} Build {Build}"; }
+
+    }
+}

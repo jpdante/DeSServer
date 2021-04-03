@@ -339,8 +339,8 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 
-# Ignore HtcSharp Config and Database
-HtcSharp/fs_str
+# Ignore HtcSharp
+HtcSharp/
 
-# Ignore HtcSharp Plugins and Database
-HtcSharp/plugins
+# Ignore LuaBuildEvents
+LuaBuildEvents/

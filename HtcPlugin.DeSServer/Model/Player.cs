@@ -8,10 +8,13 @@ namespace HtcPlugin.DeSServer.Model {
     public class Player {
         
         public string PlayerId { get; private set; }
+        public string Host { get; set; }
         public DateTime LoginDateTime { get; private set; }
+        public DateTime LastHeartbeat { get; set; }
 
-        public Player(string playerId) {
+        public Player(string playerId, string remoteHost) {
             PlayerId = playerId;
+            Host = remoteHost;
             LoginDateTime = DateTime.Now;
         }
 
@@ -51,6 +54,48 @@ namespace HtcPlugin.DeSServer.Model {
             if (!await reader.ReadAsync() || !reader.HasRows) throw new HttpException(500, "Failed to get message rating.");
             rating = reader.GetInt32(0);
             return rating;
+        }
+
+        public async Task InitializeMultiPlay() {
+            await using var conn = await DatabaseContext.GetConnection();
+            await using var cmd = new MySqlCommand("UPDATE players SET sessions = sessions + 1 WHERE player_id = @playerId;", conn);
+            cmd.Parameters.AddWithValue("playerId", PlayerId);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task FinalizeMultiPlay(uint gradeS, uint gradeA, uint gradeB, uint gradeC, uint gradeD) {
+            await using var conn = await DatabaseContext.GetConnection();
+            await using var cmd = new MySqlCommand("UPDATE players SET grade_s = grade_s + @gradeS, grade_1 = grade_1 + @gradeA, grade_b = grade_b + @gradeB, grade_c = grade_c + @gradeC, grade_d = grade_d + @gradeD WHERE player_id = @playerId;", conn);
+            cmd.Parameters.AddWithValue("playerId", PlayerId);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task UpdateMultiPlay(uint gradeS, uint gradeA, uint gradeB, uint gradeC, uint gradeD) {
+            await using var conn = await DatabaseContext.GetConnection();
+            await using var cmd = new MySqlCommand("UPDATE players SET grade_s = grade_s + @gradeS, grade_1 = grade_1 + @gradeA, grade_b = grade_b + @gradeB, grade_c = grade_c + @gradeC, grade_d = grade_d + @gradeD WHERE player_id = @playerId;", conn);
+            cmd.Parameters.AddWithValue("playerId", PlayerId);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task<PlayerInfo> GetPlayerInfo() {
+            await using var conn = await DatabaseContext.GetConnection();
+            await using var cmd = new MySqlCommand("SELECT grade_s, grade_a, grade_b, grade_c, grade_d, logins, sessions, msg_rating, tendency, play_time FROM players WHERE player_id = @playerId;", conn);
+            cmd.Parameters.AddWithValue("playerId", PlayerId);
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync() || !reader.HasRows) throw new HttpException(500, "Failed to get player info.");
+            return new PlayerInfo(
+                PlayerId,
+                reader.GetInt32(0),
+                reader.GetInt32(1),
+                reader.GetInt32(2),
+                reader.GetInt32(3),
+                reader.GetInt32(4),
+                reader.GetUInt32(5),
+                reader.GetUInt32(6),
+                reader.GetInt32(7),
+                reader.GetInt32(8),
+                reader.GetUInt32(9)
+                );
         }
     }
 }

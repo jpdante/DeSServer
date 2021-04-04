@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace HtcPlugin.DeSServer.Model {
-    public class Replay {
+    public class Message {
 
         public uint Id { get; set; }
         public string PlayerId { get; set; }
@@ -18,6 +18,7 @@ namespace HtcPlugin.DeSServer.Model {
         public int MsgId { get; set; }
         public int MainMsgId { get; set; }
         public int MsgCateId { get; set; }
+        public int Rating { get; set; }
 
         public async Task<byte[]> GenerateHeader() {
             await using var memoryStream = new MemoryStream();
@@ -33,8 +34,8 @@ namespace HtcPlugin.DeSServer.Model {
             await memoryStream.WriteAsync(BitConverter.GetBytes(MsgId));
             await memoryStream.WriteAsync(BitConverter.GetBytes(MainMsgId));
             await memoryStream.WriteAsync(BitConverter.GetBytes(MsgCateId));
+            await memoryStream.WriteAsync(BitConverter.GetBytes(Rating));
             return memoryStream.ToArray();
         }
-
     }
 }

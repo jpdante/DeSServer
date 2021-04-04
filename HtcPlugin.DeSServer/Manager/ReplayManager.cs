@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Core;
 using HtcPlugin.DeSServer.Model;
@@ -44,8 +45,34 @@ namespace HtcPlugin.DeSServer.Manager {
             return replays.ToArray();
         }
 
-        public void AddWanderingGhost() {
-        
+        public async Task<Replay> GetReplay(uint id) {
+            await using var conn = await DatabaseContext.GetConnection();
+            await using var cmd = new MySqlCommand("SELECT replay_data FROM replays WHERE id = @id;", conn);
+            cmd.Parameters.AddWithValue("id", id);
+            var replay = new List<Replay>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync() || !reader.HasRows) return null;
+            return new Replay {
+                ReplayData = Convert.FromBase64String(reader.GetString(0))
+            };
+        }
+
+        public async Task AddReplay(Replay replay) {
+            await using var conn = await DatabaseContext.GetConnection();
+            await using var cmd = new MySqlCommand("INSERT INTO replays (player_id, block_id, pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, msg_id, main_msg_id, msg_cate_id, replay_data) VALUES (@playerId, @blockId, @posX, @posY, @posZ, @rotX, @rotY, @rotZ, @msgId, @mainMsgId, @msgCateId, @replayData);", conn);
+            cmd.Parameters.AddWithValue("playerId", replay.PlayerId);
+            cmd.Parameters.AddWithValue("blockId", replay.BlockId);
+            cmd.Parameters.AddWithValue("posX", replay.PosX);
+            cmd.Parameters.AddWithValue("posY", replay.PosY);
+            cmd.Parameters.AddWithValue("posZ", replay.PosZ);
+            cmd.Parameters.AddWithValue("rotX", replay.RotX);
+            cmd.Parameters.AddWithValue("rotY", replay.RotX);
+            cmd.Parameters.AddWithValue("rotZ", replay.RotX);
+            cmd.Parameters.AddWithValue("msgId", replay.MsgId);
+            cmd.Parameters.AddWithValue("mainMsgId", replay.MainMsgId);
+            cmd.Parameters.AddWithValue("msgCateId", replay.MsgCateId);
+            cmd.Parameters.AddWithValue("replayData", Convert.ToBase64String(replay.ReplayData));
+            await cmd.ExecuteNonQueryAsync();
         }
     }
 }

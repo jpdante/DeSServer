@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -122,6 +123,12 @@ namespace HtcPlugin.DeSServer.Controller {
         [HttpPost("/demons-souls-us/ss.info")]
         public static async Task SsInfo(HttpContext httpContext) {
             httpContext.Response.StatusCode = 200;
+            string host;
+            if (HtcPlugin.Config.DeSServer.ReturnLocalhostOnLocal && httpContext.Connection.RemoteIpAddress.ToString().Equals("127.0.0.1")) {
+                host = $"127.0.0.1:{HtcPlugin.Config.DeSServer.Port}";
+            } else {
+                host = $"{HtcPlugin.Config.DeSServer.Host}:{HtcPlugin.Config.DeSServer.Port}";
+            }
             await httpContext.Response.WriteAsync(
                 "<ss>0</ss>\r\n" +
                 "<lang1></lang1>\r\n" +
@@ -134,34 +141,34 @@ namespace HtcPlugin.DeSServer.Controller {
                 "<lang8></lang8>\r\n" +
                 "<lang11></lang11>\r\n" +
                 "<lang12></lang12>\r\n" +
-                "<gameurl1>http://127.0.0.1:18000/cgi-bin/</gameurl1>\r\n" +
-                "<gameurl2>http://127.0.0.1:18000/cgi-bin/</gameurl2>\r\n" +
-                "<gameurl3>http://127.0.0.1:18000/cgi-bin/</gameurl3>\r\n" +
-                "<gameurl4>http://127.0.0.1:18000/cgi-bin/</gameurl4>\r\n" +
-                "<gameurl5>http://127.0.0.1:18000/cgi-bin/</gameurl5>\r\n" +
-                "<gameurl6>http://127.0.0.1:18000/cgi-bin/</gameurl6>\r\n" +
-                "<gameurl7>http://127.0.0.1:18000/cgi-bin/</gameurl7>\r\n" +
-                "<gameurl8>http://127.0.0.1:18000/cgi-bin/</gameurl8>\r\n" +
-                "<gameurl11>http://127.0.0.1:18000/cgi-bin/</gameurl11>\r\n" +
-                "<gameurl12>http://127.0.0.1:18000/cgi-bin/</gameurl12>\r\n" +
+                $"<gameurl1>http://{host}/cgi-bin/</gameurl1>\r\n" +
+                $"<gameurl2>http://{host}/cgi-bin/</gameurl2>\r\n" +
+                $"<gameurl3>http://{host}/cgi-bin/</gameurl3>\r\n" +
+                $"<gameurl4>http://{host}/cgi-bin/</gameurl4>\r\n" +
+                $"<gameurl5>http://{host}/cgi-bin/</gameurl5>\r\n" +
+                $"<gameurl6>http://{host}/cgi-bin/</gameurl6>\r\n" +
+                $"<gameurl7>http://{host}/cgi-bin/</gameurl7>\r\n" +
+                $"<gameurl8>http://{host}/cgi-bin/</gameurl8>\r\n" +
+                $"<gameurl11>http://{host}/cgi-bin/</gameurl11>\r\n" +
+                $"<gameurl12>http://{host}/cgi-bin/</gameurl12>\r\n" +
                 "<browserurl1></browserurl1>\r\n" +
                 "<browserurl2></browserurl2>\r\n" +
                 "<browserurl3></browserurl3>\r\n" +
-                "<interval1>120</interval1>\r\n" +
-                "<interval2>120</interval2>\r\n" +
-                "<interval3>120</interval3>\r\n" +
-                "<interval4>120</interval4>\r\n" +
-                "<interval5>120</interval5>\r\n" +
-                "<interval6>120</interval6>\r\n" +
-                "<interval7>120</interval7>\r\n" +
-                "<interval8>120</interval8>\r\n" +
-                "<interval11>120</interval11>\r\n" +
-                "<interval12>120</interval12>\r\n" +
-                "<getWanderingGhostInterval>20</getWanderingGhostInterval>\r\n" +
-                "<setWanderingGhostInterval>20</setWanderingGhostInterval>\r\n" +
-                "<getBloodMessageNum>80</getBloodMessageNum>\r\n" +
-                "<getReplayListNum>80</getReplayListNum>\r\n" +
-                "<enableWanderingGhost>1</enableWanderingGhost>");
+                $"<interval1>{HtcPlugin.Config.DeSServer.Interval}</interval1>\r\n" +
+                $"<interval2>{HtcPlugin.Config.DeSServer.Interval}</interval2>\r\n" +
+                $"<interval3>{HtcPlugin.Config.DeSServer.Interval}</interval3>\r\n" +
+                $"<interval4>{HtcPlugin.Config.DeSServer.Interval}</interval4>\r\n" +
+                $"<interval5>{HtcPlugin.Config.DeSServer.Interval}</interval5>\r\n" +
+                $"<interval6>{HtcPlugin.Config.DeSServer.Interval}</interval6>\r\n" +
+                $"<interval7>{HtcPlugin.Config.DeSServer.Interval}</interval7>\r\n" +
+                $"<interval8>{HtcPlugin.Config.DeSServer.Interval}</interval8>\r\n" +
+                $"<interval11>{HtcPlugin.Config.DeSServer.Interval}</interval11>\r\n" +
+                $"<interval12>{HtcPlugin.Config.DeSServer.Interval}</interval12>\r\n" +
+                $"<getWanderingGhostInterval>{HtcPlugin.Config.DeSServer.GetWanderingGhostInterval}</getWanderingGhostInterval>\r\n" +
+                $"<setWanderingGhostInterval>{HtcPlugin.Config.DeSServer.SetWanderingGhostInterval}</setWanderingGhostInterval>\r\n" +
+                $"<getBloodMessageNum>{HtcPlugin.Config.DeSServer.GetBloodMessageNum}</getBloodMessageNum>\r\n" +
+                $"<getReplayListNum>{HtcPlugin.Config.DeSServer.GetReplayListNum}</getReplayListNum>\r\n" +
+                $"<enableWanderingGhost>{(HtcPlugin.Config.DeSServer.EnableWanderingGhost ? 1 : 0)}</enableWanderingGhost>"); 
         }
 
         [HttpPost("/cgi-bin/login.spd")]
@@ -451,7 +458,7 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!data.TryGetValue("messageID", out string messageIdRaw)) throw new HttpException(500, "Missing messageID.");
             if (!data.TryGetValue("mainMsgID", out string mainMsgIdRaw)) throw new HttpException(500, "Missing mainMsgID.");
             if (!data.TryGetValue("addMsgCateID", out string addMsgCateIdRaw)) throw new HttpException(500, "Missing addMsgCateID.");
-            if (!data.TryGetValue("replayData", out string replayDataRaw)) throw new HttpException(500, "Missing replayData.");
+            if (!data.TryGetValue("replayBinary", out string replayDataRaw)) throw new HttpException(500, "Missing replayBinary.");
 
             if (!uint.TryParse(blockIdRaw, out uint blockId)) throw new HttpException(500, "Failed to parse blockID.");
             if (!float.TryParse(posXRaw, NumberStyles.Float, CultureInfo.InvariantCulture, out float posX)) throw new HttpException(500, "Failed to parse posx.");
@@ -501,8 +508,7 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!HtcPlugin.Server.PlayerManager.GetPlayerByNPID(playerId, out var player)) throw new HttpException(500, "Failed to get player, probably offline?");
 
             HtcPlugin.Server.PlayerManager.Heartbeat(player);
-            //Ghost[] ghosts = HtcPlugin.Server.GhostManager.GetWanderingGhosts(playerId, blockId, maxGhostNum); // TODO: Remove test
-            Ghost[] ghosts = HtcPlugin.Server.GhostManager.GetWanderingGhosts("test0", blockId, maxGhostNum);
+            Ghost[] ghosts = HtcPlugin.Server.GhostManager.GetWanderingGhosts(playerId, blockId, maxGhostNum);
             await using var memoryStream = new MemoryStream();
             await memoryStream.WriteAsync(BitConverter.GetBytes((uint)0));
             await memoryStream.WriteAsync(BitConverter.GetBytes((uint)ghosts.Length));
@@ -541,6 +547,18 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+
+            if (!data.TryGetValue("blockID", out string blockIdRaw)) throw new HttpException(500, "Missing blockID.");
+            if (!data.TryGetValue("sosNum", out string sosNumRaw)) throw new HttpException(500, "Missing sosNum.");
+            if (!data.TryGetValue("sosList", out string sosListRaw)) throw new HttpException(500, "Missing sosList.");
+
+            if (!uint.TryParse(blockIdRaw, out uint blockId)) throw new HttpException(500, "Failed to parse blockID.");
+            if (!uint.TryParse(sosNumRaw, out uint sosNum)) throw new HttpException(500, "Failed to parse sosNum.");
+            string[] sosList = sosListRaw.Split("a0a");
+
+            byte[] sessionData = await HtcPlugin.Server.SessionManager.GetSessionData(blockId, sosNum, sosList);
+            string responseData = await PrepareResponse(httpContext, 0x0f, sessionData);
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/addSosData.spd")]
@@ -626,6 +644,15 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+
+            if (!data.TryGetValue("NPRoomID", out string NPRoomID)) throw new HttpException(500, "Missing NPRoomID.");
+            if (!data.TryGetValue("ghostID", out string ghostIDRaw)) throw new HttpException(500, "Missing ghostID.");
+
+            if (!uint.TryParse(ghostIDRaw, out uint ghostID)) throw new HttpException(500, "Failed to parse ghostID.");
+
+            byte[] sessionData = HtcPlugin.Server.SessionManager.SummonPlayer(ghostID, NPRoomID);
+            string responseData = await PrepareResponse(httpContext, 0x15, sessionData);
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/summonBlackGhost.spd")]
@@ -633,6 +660,12 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+
+            if (!data.TryGetValue("NPRoomID", out string NPRoomID)) throw new HttpException(500, "Missing NPRoomID.");
+
+            byte[] sessionData = HtcPlugin.Server.SessionManager.SummonBlackGhost(NPRoomID);
+            string responseData = await PrepareResponse(httpContext, 0x15, sessionData);
+            await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/initializeMultiPlay.spd")]

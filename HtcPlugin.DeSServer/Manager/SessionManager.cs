@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Model;
 using HtcSharp.Core.Logging.Abstractions;
+// ReSharper disable InconsistentNaming
 
 namespace HtcPlugin.DeSServer.Manager {
     public class SessionManager {
 
         private readonly List<Session> _sessions;
         private readonly Queue<uint> _availableSessionIds;
+        private readonly List<uint> _allowedInvasionLocations;
         private readonly Dictionary<string, string> _playersPending;
         private readonly Dictionary<string, string> _invadersPending;
         private readonly Dictionary<string, Session> _sessionsByNPID;
@@ -20,6 +24,17 @@ namespace HtcPlugin.DeSServer.Manager {
             for (uint i = 0; i < 1000; i++) {
                 _availableSessionIds.Enqueue(i);
             }
+            _allowedInvasionLocations = new List<uint> {
+                40070,
+                40071,
+                40072,
+                40073,
+                40074,
+                40170,
+                40171,
+                40172,
+                40270
+            };
             _playersPending = new Dictionary<string, string>();
             _invadersPending = new Dictionary<string, string>();
             _sessionsByNPID = new Dictionary<string, Session>();
@@ -43,6 +58,36 @@ namespace HtcPlugin.DeSServer.Manager {
             return success;
         }
 
+        public async Task<byte[]> GetSessionData(uint blockId, uint sosNum, string[] sosList) {
+            foreach (var session in _sessions.Where(session => session.LastHeartbeat.AddSeconds(30) <= DateTime.Now)) {
+                DisposeSession(session);
+            }
+
+            var knewSessions = new List<uint>();
+            var newSessions = new List<uint>();
+            foreach (var session in _sessions.Where(session => session.BlockId == blockId)) {
+                if (sosList.Contains(session.Id.ToString())) {
+                    knewSessions.Add(session.Id);
+                } else {
+                    if (newSessions.Count < sosNum) newSessions.Add(session.Id);
+                }
+            }
+
+            await using var memoryStream = new MemoryStream();
+
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) knewSessions.Count));
+            foreach (uint sessionId in knewSessions) {
+                await memoryStream.WriteAsync(BitConverter.GetBytes(sessionId));
+            }
+
+            await memoryStream.WriteAsync(BitConverter.GetBytes((uint) newSessions.Count));
+            foreach (uint sessionId in newSessions) {
+                await memoryStream.WriteAsync(BitConverter.GetBytes(sessionId));
+            }
+
+            return memoryStream.ToArray();
+        }
+
         public byte[] CheckSession(Player player) {
             byte[] data;
             if (_invadersPending.TryGetValue(player.PlayerId, out string dataRaw)) {
@@ -58,6 +103,22 @@ namespace HtcPlugin.DeSServer.Manager {
         public void SetOutOfBlock(Player player) {
             if (!_sessionsByNPID.TryGetValue(player.PlayerId, out var session)) return;
             DisposeSession(session);
+        }
+
+        public byte[] SummonPlayer(uint ghostId, string npRoomId) {
+            foreach (var session in _sessions.Where(x => x.Id == ghostId)) {
+                _playersPending.Add(session.PlayerInfo.PlayerId, npRoomId);
+                return new[] {(byte) '\x01'};
+            }
+            return new[] {(byte) '\x00'};
+        }
+
+        public byte[] SummonBlackGhost(string npRoomId) {
+            foreach (var session in _sessions.Where(x => _allowedInvasionLocations.Contains(x.BlockId))) {
+                _invadersPending.Add(session.PlayerInfo.PlayerId, npRoomId);
+                return new[] {(byte) '\x01'};
+            }
+            return new[] {(byte) '\x00'};
         }
 
         public void DisposeSession(Session session) {

@@ -12,7 +12,15 @@ namespace HtcPlugin.DeSServer.Core {
 
         public DeSConfig() : base(1) {
             DeSServer = new DeSServerConfig {
-
+                Host = "127.0.0.1",
+                Port = 18000,
+                ReturnLocalhostOnLocal = true,
+                Interval = 120,
+                GetWanderingGhostInterval = 20,
+                SetWanderingGhostInterval = 20,
+                GetBloodMessageNum = 80,
+                GetReplayListNum = 80,
+                EnableWanderingGhost = true
             };
             Db = new DatabaseConfig {
                 Host = "127.0.0.1",
@@ -27,6 +35,32 @@ namespace HtcPlugin.DeSServer.Core {
 
     public class DeSServerConfig {
 
+        [JsonPropertyName("host")]
+        public string Host { get; set; }
+
+        [JsonPropertyName("port")]
+        public int Port { get; set; }
+
+        [JsonPropertyName("returnLocalhostOnLocal")]
+        public bool ReturnLocalhostOnLocal { get; set; }
+
+        [JsonPropertyName("interval")]
+        public int Interval { get; set; }
+
+        [JsonPropertyName("getWanderingGhostInterval")]
+        public int GetWanderingGhostInterval { get; set; }
+
+        [JsonPropertyName("setWanderingGhostInterval")]
+        public int SetWanderingGhostInterval { get; set; }
+
+        [JsonPropertyName("getBloodMessageNum")]
+        public int GetBloodMessageNum { get; set; }
+
+        [JsonPropertyName("getReplayListNum")]
+        public int GetReplayListNum { get; set; }
+
+        [JsonPropertyName("EnableWanderingGhost")]
+        public bool EnableWanderingGhost { get; set; }
     }
 
     public class DatabaseConfig {

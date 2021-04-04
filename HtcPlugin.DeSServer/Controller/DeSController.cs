@@ -435,8 +435,12 @@ namespace HtcPlugin.DeSServer.Controller {
             var replay = await HtcPlugin.Server.ReplayManager.GetReplay(ghostID);
             await using var memoryStream = new MemoryStream();
             await memoryStream.WriteAsync(BitConverter.GetBytes(ghostID));
-            await memoryStream.WriteAsync(BitConverter.GetBytes(replay == null ? 0 : (uint) replay.ReplayData.Length));
-            if (replay != null) await memoryStream.WriteAsync(replay.ReplayData);
+            if (replay != null) {
+                await memoryStream.WriteAsync(BitConverter.GetBytes((uint) replay.ReplayData.Length));
+                await memoryStream.WriteAsync(replay.ReplayData);
+            } else {
+                await memoryStream.WriteAsync(BitConverter.GetBytes(0));
+            }
             string responseData = await PrepareResponse(httpContext, 0x1e, memoryStream.ToArray());
             await SendResponse(httpContext, responseData);
         }

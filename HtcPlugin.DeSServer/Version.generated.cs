@@ -8,7 +8,7 @@ namespace HtcPlugin.DeSServer {
         public static readonly int Major = 0;
         public static readonly int Minor = 1;
         public static readonly int Patch = 0;
-        public static readonly int Build = 112;
+        public static readonly int Build = 113;
 
         public static string GetVersion() { return $"{Major}.{Minor}.{Patch} Build {Build}"; }
 

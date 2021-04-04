@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Core;
 using HtcPlugin.DeSServer.Model;
@@ -53,7 +54,7 @@ namespace HtcPlugin.DeSServer.Manager {
             await using var reader = await cmd.ExecuteReaderAsync();
             if (!await reader.ReadAsync() || !reader.HasRows) return null;
             return new Replay {
-                ReplayData = Convert.FromBase64String(reader.GetString(0))
+                ReplayData = Encoding.ASCII.GetBytes(reader.GetString(0))
             };
         }
 
@@ -71,7 +72,7 @@ namespace HtcPlugin.DeSServer.Manager {
             cmd.Parameters.AddWithValue("msgId", replay.MsgId);
             cmd.Parameters.AddWithValue("mainMsgId", replay.MainMsgId);
             cmd.Parameters.AddWithValue("msgCateId", replay.MsgCateId);
-            cmd.Parameters.AddWithValue("replayData", Convert.ToBase64String(replay.ReplayData));
+            cmd.Parameters.AddWithValue("replayData", Convert.ToBase64String(replay.ReplayData).Replace("+", " "));
             await cmd.ExecuteNonQueryAsync();
         }
     }

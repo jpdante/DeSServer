@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Core;
 using HtcPlugin.DeSServer.Model;
+using HtcSharp.Core.Logging.Abstractions;
 using MySqlConnector;
 
 namespace HtcPlugin.DeSServer.Manager {
@@ -73,6 +74,7 @@ namespace HtcPlugin.DeSServer.Manager {
                 }
             }
 
+            HtcPlugin.Logger.LogInfo($"[MessageManager] Get blood message list");
             return messages.ToArray();
         }
 
@@ -92,6 +94,7 @@ namespace HtcPlugin.DeSServer.Manager {
             cmd.Parameters.AddWithValue("msgCateId", message.MsgCateId);
             cmd.Parameters.AddWithValue("rating", 0);
             await cmd.ExecuteNonQueryAsync();
+            HtcPlugin.Logger.LogInfo($"[MessageManager] Add {message.PlayerId} blood message");
         }
 
         public async Task DeleteMessage(uint id) {
@@ -99,6 +102,7 @@ namespace HtcPlugin.DeSServer.Manager {
             await using var cmd = new MySqlCommand("DELETE FROM messages WHERE id = @id", conn);
             cmd.Parameters.AddWithValue("id", id);
             await cmd.ExecuteNonQueryAsync();
+            HtcPlugin.Logger.LogInfo($"[MessageManager] Delete blood message ID: {id}");
         }
 
         public async Task RecommendMessage(uint id) {
@@ -106,6 +110,7 @@ namespace HtcPlugin.DeSServer.Manager {
             await using var cmd = new MySqlCommand("UPDATE messages set rating = rating + 1 WHERE id = @id", conn);
             cmd.Parameters.AddWithValue("id", id);
             await cmd.ExecuteNonQueryAsync();
+            HtcPlugin.Logger.LogInfo($"[MessageManager] Recommended blood message ID: {id}");
         }
     }
 }

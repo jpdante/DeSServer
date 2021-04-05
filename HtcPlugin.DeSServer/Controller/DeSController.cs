@@ -17,6 +17,8 @@ using Microsoft.Extensions.Primitives;
 namespace HtcPlugin.DeSServer.Controller {
     public class DeSController {
 
+        private static List<string> ProcessList = new List<string>();
+
         private static async Task<string> PrepareResponse(HttpContext httpContext, byte cmd, byte[] data) {
             var memoryStream = new MemoryStream();
             memoryStream.WriteByte(cmd);
@@ -32,15 +34,18 @@ namespace HtcPlugin.DeSServer.Controller {
             httpContext.Response.Headers.Add("Connection", "close");
             httpContext.Response.Headers.Add("Content-Type", "text/html; charset=UTF-8");
             await httpContext.Response.WriteAsync(data);
-            HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} <= {{");
+            /*HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} <= {{");
             HtcPlugin.Logger.LogInfo($"    Headers {{");
             foreach (KeyValuePair<string, StringValues> headers in httpContext.Response.Headers) {
                 HtcPlugin.Logger.LogInfo($"        {headers.Key}: \"{headers.Value}\"");
             }
             HtcPlugin.Logger.LogInfo($"    }}");
             HtcPlugin.Logger.LogInfo($"    Body: {data.Remove(data.Length - 1, 1)}");
-            //HtcPlugin.Logger.LogInfo($"    Decoded Body: {Encoding.ASCII.GetString(Convert.FromBase64String(data.Remove(data.Length - 1, 1)))}");
-            HtcPlugin.Logger.LogInfo($"}}");
+            HtcPlugin.Logger.LogInfo($"}}");*/
+            ProcessList.Remove(httpContext.Connection.Id);
+            foreach (string conn in ProcessList) {
+                HtcPlugin.Logger.LogWarn($"Response for {conn} was not send!");
+            }
         }
 
         private static async Task<string> GetAndDecryptData(HttpContext httpContext) {
@@ -107,7 +112,8 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         private static void PrintRequest(HttpContext httpContext, string data = null) {
-            HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} => {httpContext.Request.Method} {httpContext.Request.Path} {{");
+            ProcessList.Add(httpContext.Connection.Id);
+            /*HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} => {httpContext.Request.Method} {httpContext.Request.Path} {{");
             HtcPlugin.Logger.LogInfo($"    Host: {httpContext.Request.Host}");
             HtcPlugin.Logger.LogInfo($"    ContentType: {httpContext.Request.ContentType}");
             HtcPlugin.Logger.LogInfo($"    Query: {httpContext.Request.QueryString}");
@@ -117,7 +123,7 @@ namespace HtcPlugin.DeSServer.Controller {
             }
             HtcPlugin.Logger.LogInfo($"    }},");
             if (data != null) HtcPlugin.Logger.LogInfo($"    Body: {data}");
-            HtcPlugin.Logger.LogInfo($"}}");
+            HtcPlugin.Logger.LogInfo($"}}");*/
         }
 
         [HttpPost("/demons-souls-us/ss.info")]
@@ -383,7 +389,7 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!data.TryGetValue("bmID", out string bmIdRaw)) throw new HttpException(500, "Missing bmID.");
             if (!uint.TryParse(bmIdRaw, out uint bmId)) throw new HttpException(500, "Failed to parse bmID.");
 
-            await HtcPlugin.Server.MessageManager.DeleteMessage(bmId);
+            await HtcPlugin.Server.MessageManager.RecommendMessage(bmId);
             string responseData = await PrepareResponse(httpContext, 0x27, new[] { (byte)'\x01' });
             await SendResponse(httpContext, responseData);
         }

@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Core;
 using HtcPlugin.DeSServer.Model;
+using HtcSharp.Core.Logging.Abstractions;
 using MySqlConnector;
 
 namespace HtcPlugin.DeSServer.Manager {
@@ -43,6 +44,7 @@ namespace HtcPlugin.DeSServer.Manager {
                     MsgCateId = reader.GetInt32(11),
                 });
             }
+            HtcPlugin.Logger.LogInfo($"[ReplayManager] Get replay list");
             return replays.ToArray();
         }
 
@@ -53,6 +55,7 @@ namespace HtcPlugin.DeSServer.Manager {
             var replay = new List<Replay>();
             await using var reader = await cmd.ExecuteReaderAsync();
             if (!await reader.ReadAsync() || !reader.HasRows) return null;
+            HtcPlugin.Logger.LogInfo($"[ReplayManager] Get replay ID: {id}");
             return new Replay {
                 ReplayData = Encoding.ASCII.GetBytes(reader.GetString(0))
             };
@@ -74,6 +77,7 @@ namespace HtcPlugin.DeSServer.Manager {
             cmd.Parameters.AddWithValue("msgCateId", replay.MsgCateId);
             cmd.Parameters.AddWithValue("replayData", Convert.ToBase64String(replay.ReplayData).Replace("+", " "));
             await cmd.ExecuteNonQueryAsync();
+            HtcPlugin.Logger.LogInfo($"[ReplayManager] Add {replay.PlayerId} replay");
         }
     }
 }

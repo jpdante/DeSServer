@@ -59,7 +59,8 @@ namespace HtcPlugin.DeSServer.Manager {
         }
 
         public async Task<byte[]> GetSessionData(uint blockId, uint sosNum, string[] sosList) {
-            foreach (var session in _sessions.Where(session => session.LastHeartbeat.AddSeconds(30) <= DateTime.Now)) {
+            HtcPlugin.Logger.LogInfo($"[SessionManager] Get session data");
+            foreach (var session in _sessions.Where(session => session.LastHeartbeat.AddSeconds(30) <= DateTime.Now).ToArray()) {
                 DisposeSession(session);
             }
 
@@ -68,8 +69,11 @@ namespace HtcPlugin.DeSServer.Manager {
             foreach (var session in _sessions.Where(session => session.BlockId == blockId)) {
                 if (sosList.Contains(session.Id.ToString())) {
                     knewSessions.Add(session.Id);
+                    HtcPlugin.Logger.LogInfo($"[SessionManager] Adding knew session ID: {session.Id}");
                 } else {
-                    if (newSessions.Count < sosNum) newSessions.Add(session.Id);
+                    if (newSessions.Count >= sosNum) continue;
+                    newSessions.Add(session.Id);
+                    HtcPlugin.Logger.LogInfo($"[SessionManager] Adding new session ID: {session.Id}");
                 }
             }
 
@@ -89,11 +93,14 @@ namespace HtcPlugin.DeSServer.Manager {
         }
 
         public byte[] CheckSession(Player player) {
+            HtcPlugin.Logger.LogInfo($"[SessionManager] Check session {player.PlayerId}");
             byte[] data;
             if (_invadersPending.TryGetValue(player.PlayerId, out string dataRaw)) {
                 data = Encoding.ASCII.GetBytes(dataRaw);
+                HtcPlugin.Logger.LogInfo($"[SessionManager] Summoning invation to {player.PlayerId}");
             } else if (_playersPending.TryGetValue(player.PlayerId, out string dataRaw2)) {
                 data = Encoding.ASCII.GetBytes(dataRaw2);
+                HtcPlugin.Logger.LogInfo($"[SessionManager] Connecting player to {player.PlayerId}");
             } else {
                 data = new[] {(byte) '\x01'};
             }
@@ -101,12 +108,14 @@ namespace HtcPlugin.DeSServer.Manager {
         }
 
         public void SetOutOfBlock(Player player) {
+            HtcPlugin.Logger.LogInfo($"[SessionManager] {player.PlayerId} out of range");
             if (!_sessionsByNPID.TryGetValue(player.PlayerId, out var session)) return;
             DisposeSession(session);
         }
 
         public byte[] SummonPlayer(uint ghostId, string npRoomId) {
             foreach (var session in _sessions.Where(x => x.Id == ghostId)) {
+                HtcPlugin.Logger.LogInfo($"[SessionManager] {session.PlayerInfo.PlayerId} is attempting to summon ghost ID: {ghostId} NPRoomID: {npRoomId}");
                 _playersPending.Add(session.PlayerInfo.PlayerId, npRoomId);
                 return new[] {(byte) '\x01'};
             }
@@ -115,6 +124,7 @@ namespace HtcPlugin.DeSServer.Manager {
 
         public byte[] SummonBlackGhost(string npRoomId) {
             foreach (var session in _sessions.Where(x => _allowedInvasionLocations.Contains(x.BlockId))) {
+                HtcPlugin.Logger.LogInfo($"[SessionManager] {session.PlayerInfo.PlayerId} is attempting to summon invader NPRoomID: {npRoomId}");
                 _invadersPending.Add(session.PlayerInfo.PlayerId, npRoomId);
                 return new[] {(byte) '\x01'};
             }
@@ -131,6 +141,7 @@ namespace HtcPlugin.DeSServer.Manager {
 
         public void Heartbeat(Player player) {
             if (_sessionsByNPID.TryGetValue(player.PlayerId, out var session)) {
+                HtcPlugin.Logger.LogInfo($"[Heartbeat] {player.PlayerId}, Session {session.Id}");
                 session.LastHeartbeat = DateTime.Now;
             }
         }

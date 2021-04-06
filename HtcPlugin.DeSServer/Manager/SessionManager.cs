@@ -60,9 +60,9 @@ namespace HtcPlugin.DeSServer.Manager {
 
         public async Task<byte[]> GetSessionData(uint blockId, uint sosNum, string[] sosList) {
             HtcPlugin.Logger.LogInfo($"[SessionManager] Get session data");
-            /*foreach (var session in _sessions.Where(session => session.LastHeartbeat.AddSeconds(30) <= DateTime.Now).ToArray()) {
+            foreach (var session in _sessions.Where(session => session.LastHeartbeat.AddMinutes(5) <= DateTime.Now).ToArray()) {
                 DisposeSession(session);
-            }*/
+            }
 
             var knewSessions = new List<byte[]>();
             var newSessions = new List<byte[]>();
@@ -96,9 +96,11 @@ namespace HtcPlugin.DeSServer.Manager {
             HtcPlugin.Logger.LogInfo($"[SessionManager] Check session {player.PlayerId}");
             byte[] data;
             if (_invadersPending.TryGetValue(player.PlayerId, out string dataRaw)) {
+                _invadersPending.Remove(player.PlayerId);
                 data = Encoding.ASCII.GetBytes(dataRaw);
                 HtcPlugin.Logger.LogInfo($"[SessionManager] Summoning invation to {player.PlayerId}");
             } else if (_playersPending.TryGetValue(player.PlayerId, out string dataRaw2)) {
+                _playersPending.Remove(player.PlayerId);
                 data = Encoding.ASCII.GetBytes(dataRaw2);
                 HtcPlugin.Logger.LogInfo($"[SessionManager] Connecting player to {player.PlayerId}");
             } else {

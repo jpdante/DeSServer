@@ -17,8 +17,6 @@ using Microsoft.Extensions.Primitives;
 namespace HtcPlugin.DeSServer.Controller {
     public class DeSController {
 
-        private static List<string> ProcessList = new List<string>();
-
         private static async Task<string> PrepareResponse(HttpContext httpContext, byte cmd, byte[] data) {
             var memoryStream = new MemoryStream();
             memoryStream.WriteByte(cmd);
@@ -42,10 +40,6 @@ namespace HtcPlugin.DeSServer.Controller {
             HtcPlugin.Logger.LogInfo($"    }}");
             HtcPlugin.Logger.LogInfo($"    Body: {data.Remove(data.Length - 1, 1)}");
             HtcPlugin.Logger.LogInfo($"}}");*/
-            ProcessList.Remove(httpContext.Connection.Id);
-            foreach (string conn in ProcessList) {
-                HtcPlugin.Logger.LogWarn($"Response for {conn} was not send!");
-            }
         }
 
         private static async Task<string> GetAndDecryptData(HttpContext httpContext) {
@@ -106,13 +100,12 @@ namespace HtcPlugin.DeSServer.Controller {
                 if (param == "\x00" || param == "") continue;
                 if (!param.Contains("=")) continue;
                 string[] keyValue = param.Split("=", 2);
-                parameters.Add(keyValue[0], keyValue[1]);
+                parameters[keyValue[0]] = keyValue[1];
             }
             return parameters;
         }
 
         private static void PrintRequest(HttpContext httpContext, string data = null) {
-            ProcessList.Add(httpContext.Connection.Id);
             /*HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} => {httpContext.Request.Method} {httpContext.Request.Path} {{");
             HtcPlugin.Logger.LogInfo($"    Host: {httpContext.Request.Host}");
             HtcPlugin.Logger.LogInfo($"    ContentType: {httpContext.Request.ContentType}");
@@ -611,7 +604,7 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!int.TryParse(playerLevelRaw, out int playerLevel)) throw new HttpException(500, "Failed to parse qwcwb.");
 
             HtcPlugin.Server.PlayerManager.Heartbeat(player);
-            bool success = await HtcPlugin.Server.SessionManager.CreateSession(player, blockId, posX, posY, posZ, rotX, rotY, rotZ, messageId, mainMsgId, addMsgCateId, clientPlayerInfo, qwcwb, qwclr, isBlack > 0, playerLevel);
+            bool success = await HtcPlugin.Server.SessionManager.CreateSession(player, blockId, posX, posY, posZ, rotX, rotY, rotZ, messageId, mainMsgId, addMsgCateId, clientPlayerInfo, qwcwb, qwclr, isBlack != 2, playerLevel);
 
             string responseData = await PrepareResponse(httpContext, 0x0a, new[] { success ? (byte)'\x01' : (byte)'\x00' }); // Test if sending 0x00 when fail to cancel the request.
             await SendResponse(httpContext, responseData);

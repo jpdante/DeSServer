@@ -20,7 +20,7 @@ namespace HtcPlugin.DeSServer.Model {
         public int MsgCateId { get; set; }
         public int Rating { get; set; }
 
-        public async Task<byte[]> GenerateHeader() {
+        public async Task<byte[]> Serialize() {
             await using var memoryStream = new MemoryStream();
             await memoryStream.WriteAsync(BitConverter.GetBytes(Id));
             await memoryStream.WriteAsync(Encoding.ASCII.GetBytes($"{PlayerId}\x00"));

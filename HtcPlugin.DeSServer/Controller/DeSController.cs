@@ -323,7 +323,7 @@ namespace HtcPlugin.DeSServer.Controller {
             await using var memoryStream = new MemoryStream();
             await memoryStream.WriteAsync(BitConverter.GetBytes((uint)messages.Length));
             foreach (var message in messages) {
-                await memoryStream.WriteAsync(await message.GenerateHeader());
+                await memoryStream.WriteAsync(await message.Serialize());
             }
             string responseData = await PrepareResponse(httpContext, 0x1f, memoryStream.ToArray());
             await SendResponse(httpContext, responseData);
@@ -423,7 +423,7 @@ namespace HtcPlugin.DeSServer.Controller {
             await using var memoryStream = new MemoryStream();
             await memoryStream.WriteAsync(BitConverter.GetBytes((uint)replays.Length));
             foreach (var replay in replays) {
-                await memoryStream.WriteAsync(await replay.GenerateHeader());
+                await memoryStream.WriteAsync(await replay.Serialize());
             }
             string responseData = await PrepareResponse(httpContext, 0x1f, memoryStream.ToArray());
             await SendResponse(httpContext, responseData);

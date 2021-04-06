@@ -60,19 +60,19 @@ namespace HtcPlugin.DeSServer.Manager {
 
         public async Task<byte[]> GetSessionData(uint blockId, uint sosNum, string[] sosList) {
             HtcPlugin.Logger.LogInfo($"[SessionManager] Get session data");
-            foreach (var session in _sessions.Where(session => session.LastHeartbeat.AddSeconds(30) <= DateTime.Now).ToArray()) {
+            /*foreach (var session in _sessions.Where(session => session.LastHeartbeat.AddSeconds(30) <= DateTime.Now).ToArray()) {
                 DisposeSession(session);
-            }
+            }*/
 
-            var knewSessions = new List<uint>();
-            var newSessions = new List<uint>();
+            var knewSessions = new List<byte[]>();
+            var newSessions = new List<byte[]>();
             foreach (var session in _sessions.Where(session => session.BlockId == blockId)) {
                 if (sosList.Contains(session.Id.ToString())) {
-                    knewSessions.Add(session.Id);
+                    knewSessions.Add(BitConverter.GetBytes(session.Id));
                     HtcPlugin.Logger.LogInfo($"[SessionManager] Adding knew session ID: {session.Id}");
                 } else {
-                    if (newSessions.Count >= sosNum) continue;
-                    newSessions.Add(session.Id);
+                    //if (newSessions.Count >= sosNum) continue;
+                    newSessions.Add(await session.Serialize());
                     HtcPlugin.Logger.LogInfo($"[SessionManager] Adding new session ID: {session.Id}");
                 }
             }
@@ -80,13 +80,13 @@ namespace HtcPlugin.DeSServer.Manager {
             await using var memoryStream = new MemoryStream();
 
             await memoryStream.WriteAsync(BitConverter.GetBytes((uint) knewSessions.Count));
-            foreach (uint sessionId in knewSessions) {
-                await memoryStream.WriteAsync(BitConverter.GetBytes(sessionId));
+            foreach (byte[] sessionData in knewSessions) {
+                await memoryStream.WriteAsync(sessionData);
             }
 
             await memoryStream.WriteAsync(BitConverter.GetBytes((uint) newSessions.Count));
-            foreach (uint sessionId in newSessions) {
-                await memoryStream.WriteAsync(BitConverter.GetBytes(sessionId));
+            foreach (byte[] sessionData in newSessions) {
+                await memoryStream.WriteAsync(sessionData);
             }
 
             return memoryStream.ToArray();

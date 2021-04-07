@@ -133,6 +133,13 @@ namespace HtcPlugin.DeSServer.Manager {
             return new[] {(byte) '\x00'};
         }
 
+        public void DisconnectPlayer(Player player) {
+            if (_sessionsByNPID.TryGetValue(player.PlayerId, out var session)) DisposeSession(session);
+            _sessionsByNPID.Remove(player.PlayerId);
+            _playersPending.Remove(player.PlayerId);
+            _invadersPending.Remove(player.PlayerId);
+        }
+
         public void DisposeSession(Session session) {
             session.Dispose();
             _availableSessionIds.Enqueue(session.Id);
@@ -142,10 +149,9 @@ namespace HtcPlugin.DeSServer.Manager {
         }
 
         public void Heartbeat(Player player) {
-            if (_sessionsByNPID.TryGetValue(player.PlayerId, out var session)) {
-                HtcPlugin.Logger.LogInfo($"[Heartbeat] {player.PlayerId}, Session {session.Id}");
-                session.LastHeartbeat = DateTime.Now;
-            }
+            if (!_sessionsByNPID.TryGetValue(player.PlayerId, out var session)) return;
+            HtcPlugin.Logger.LogInfo($"[Heartbeat] {player.PlayerId}, Session {session.Id}");
+            session.LastHeartbeat = DateTime.Now;
         }
     }
 }

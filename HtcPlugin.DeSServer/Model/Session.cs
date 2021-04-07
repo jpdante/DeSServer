@@ -75,7 +75,7 @@ namespace HtcPlugin.DeSServer.Model {
             await memoryStream.WriteAsync(Encoding.ASCII.GetBytes($"{ClientPlayerInfo}\x00"));
             await memoryStream.WriteAsync(BitConverter.GetBytes(Qwcwb));
             await memoryStream.WriteAsync(BitConverter.GetBytes(Qwclr));
-            await memoryStream.WriteAsync(BitConverter.GetBytes(IsBlack));
+            memoryStream.WriteByte(IsBlack ? (byte) 1 : (byte) 2);
             return memoryStream.ToArray();
         }
 

@@ -42,16 +42,24 @@ namespace HtcPlugin.DeSServer.Manager {
         private async Task DisconnectPlayers() {
             await using var conn = await DatabaseContext.GetConnection();
             List<Player> removeList = _players.Where(p => p.LastHeartbeat.AddSeconds(40) <= DateTime.Now).ToList();
-            foreach (var p in removeList) {
-                _playersByHost.Remove(p.Host);
-                _playersByNPID.Remove(p.PlayerId);
-                _players.Remove(p);
-                HtcPlugin.Logger.LogInfo($"[PlayerManager] {p.PlayerId} disconnected.");
-                await using var cmd = new MySqlCommand("UPDATE players SET play_time = play_time + @playTime WHERE player_id = @playerId;", conn);
-                cmd.Parameters.AddWithValue("playerId", p.PlayerId);
-                cmd.Parameters.AddWithValue("playTime", (uint) (DateTime.Now - p.LoginDateTime).TotalSeconds);
-                await cmd.ExecuteNonQueryAsync();
+            foreach (var player in removeList) {
+                await RemovePlayer(player, conn);
             }
+        }
+
+        private async Task RemovePlayer(Player player, MySqlConnection conn = null) {
+            _playersByHost.Remove(player.Host);
+            _playersByNPID.Remove(player.PlayerId);
+            _players.Remove(player);
+            HtcPlugin.Server.SessionManager.DisconnectPlayer(player);
+            HtcPlugin.Logger.LogInfo($"[PlayerManager] {player.PlayerId} disconnected.");
+            bool disposeConnection = conn == null;
+            conn ??= await DatabaseContext.GetConnection();
+            await using var cmd = new MySqlCommand("UPDATE players SET play_time = play_time + @playTime WHERE player_id = @playerId;", conn);
+            cmd.Parameters.AddWithValue("playerId", player.PlayerId);
+            cmd.Parameters.AddWithValue("playTime", (uint) (DateTime.Now - player.LoginDateTime).TotalSeconds);
+            await cmd.ExecuteNonQueryAsync();
+            if (disposeConnection) await conn.DisposeAsync();
         }
 
         public Task Enable() {
@@ -70,6 +78,8 @@ namespace HtcPlugin.DeSServer.Manager {
             await using var cmd = new MySqlCommand("INSERT INTO players (player_id, grade_s, grade_a, grade_b, grade_c, grade_d, logins, sessions, msg_rating, tendency, play_time) VALUES (@playerId, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0) ON DUPLICATE KEY UPDATE logins = logins + 1;", conn);
             cmd.Parameters.AddWithValue("playerId", playerId);
             await cmd.ExecuteNonQueryAsync();
+            if (_playersByNPID.TryGetValue(playerId, out var p1)) await RemovePlayer(p1, conn);
+            if (_playersByHost.TryGetValue(playerId, out var p2)) await RemovePlayer(p2, conn);
             var player = new Player(playerId, remoteHost);
             _playersByHost.TryAdd(remoteHost, player);
             _playersByNPID.TryAdd(playerId, player);

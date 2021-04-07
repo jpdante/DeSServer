@@ -41,7 +41,7 @@ namespace HtcPlugin.DeSServer.Manager {
 
         private async Task DisconnectPlayers() {
             await using var conn = await DatabaseContext.GetConnection();
-            List<Player> removeList = _players.Where(p => p.LastHeartbeat.AddSeconds(40) <= DateTime.Now).ToList();
+            List<Player> removeList = _players.Where(p => p.LastHeartbeat.AddSeconds(HtcPlugin.Config.DeSServer.PlayerHeartbeatTimeout) <= DateTime.Now).ToList();
             foreach (var player in removeList) {
                 await RemovePlayer(player, conn);
             }

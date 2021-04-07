@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using RedNX.Config;
 
 namespace HtcPlugin.DeSServer.Core {
@@ -20,7 +21,12 @@ namespace HtcPlugin.DeSServer.Core {
                 SetWanderingGhostInterval = 20,
                 GetBloodMessageNum = 80,
                 GetReplayListNum = 80,
-                EnableWanderingGhost = true
+                EnableWanderingGhost = true,
+                Motd = new List<string> {
+                    "Hey, welcome to my DeS Server!\r\nHave fun!"
+                },
+                PlayerHeartbeatTimeout = 60, //  1 Minute
+                SessionHeartbeatTimeout = 5 * 60, // 5 Minutes
             };
             Db = new DatabaseConfig {
                 Host = "127.0.0.1",
@@ -59,8 +65,17 @@ namespace HtcPlugin.DeSServer.Core {
         [JsonPropertyName("getReplayListNum")]
         public int GetReplayListNum { get; set; }
 
-        [JsonPropertyName("EnableWanderingGhost")]
+        [JsonPropertyName("enableWanderingGhost")]
         public bool EnableWanderingGhost { get; set; }
+
+        [JsonPropertyName("motd")]
+        public List<string> Motd { get; set; }
+
+        [JsonPropertyName("playerHeartbeatTimeout")]
+        public int PlayerHeartbeatTimeout { get; set; }
+
+        [JsonPropertyName("sessionHeartbeatTimeout")]
+        public int SessionHeartbeatTimeout { get; set; }
     }
 
     public class DatabaseConfig {

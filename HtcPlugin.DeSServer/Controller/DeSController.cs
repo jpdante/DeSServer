@@ -176,9 +176,13 @@ namespace HtcPlugin.DeSServer.Controller {
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
 
-            const string motd = "DeS test server\r\n";
-            const string motd2 = "Furries are wonderful\r\n";
-            string responseData = await PrepareResponse(httpContext, 0x02, Encoding.ASCII.GetBytes("\x01\x02" + motd + "\x00" + motd2 + "\x00"));
+            var builder = new StringBuilder("\x01");
+            builder.Append((char) HtcPlugin.Config.DeSServer.Motd.Count);
+            foreach (string motd in HtcPlugin.Config.DeSServer.Motd) {
+                builder.Append(motd);
+                builder.Append("\x00");
+            }
+            string responseData = await PrepareResponse(httpContext, 0x02, Encoding.ASCII.GetBytes(builder.ToString()));
             await SendResponse(httpContext, responseData);
         }
 

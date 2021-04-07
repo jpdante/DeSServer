@@ -60,7 +60,7 @@ namespace HtcPlugin.DeSServer.Manager {
 
         public async Task<byte[]> GetSessionData(uint blockId, uint sosNum, string[] sosList) {
             HtcPlugin.Logger.LogInfo($"[SessionManager] Get session data");
-            foreach (var session in _sessions.Where(session => session.LastHeartbeat.AddMinutes(5) <= DateTime.Now).ToArray()) {
+            foreach (var session in _sessions.Where(session => session.LastHeartbeat.AddSeconds(HtcPlugin.Config.DeSServer.SessionHeartbeatTimeout) <= DateTime.Now).ToArray()) {
                 DisposeSession(session);
             }
 

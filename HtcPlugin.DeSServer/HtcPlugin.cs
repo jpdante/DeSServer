@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Core;
@@ -6,6 +7,8 @@ using HtcSharp.Core.Logging.Abstractions;
 using HtcSharp.Core.Plugin;
 using HtcSharp.Core.Plugin.Abstractions;
 using HtcSharp.HttpModule;
+using HtcSharp.HttpModule.Http.Abstractions;
+using HtcSharp.HttpModule.Http.Abstractions.Extensions;
 using RedNX.Config;
 using RedNX.IO;
 
@@ -44,6 +47,10 @@ namespace HtcPlugin.DeSServer {
 
         public bool IsCompatible(int htcMajor, int htcMinor, int htcPatch) {
             return true;
+        }
+
+        public override async Task ThrowException(HttpContext httpContext, Exception exception) {
+            await httpContext.Response.WriteAsync(exception.Message);
         }
     }
 }

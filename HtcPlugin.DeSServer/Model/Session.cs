@@ -49,6 +49,7 @@ namespace HtcPlugin.DeSServer.Model {
             Qwclr = qwclr;
             IsBlack = isBlack;
             PlayerLevel = playerLevel;
+            LastHeartbeat = DateTime.Now;
         }
 
         public async Task<byte[]> Serialize() {

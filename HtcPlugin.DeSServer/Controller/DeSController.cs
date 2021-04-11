@@ -213,11 +213,11 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!HtcPlugin.Server.PlayerManager.GetPlayerByHost(httpContext.Connection.RemoteIpAddress.ToString(), out var player)) throw new HttpException(500, "Failed to get player, probably offline?");
 
             HtcPlugin.Server.PlayerManager.Heartbeat(player);
-            short tendency = await player.GetWorldTendency();
+            int tendency = await player.GetWorldTendency();
             await using var memoryStream = new MemoryStream();
             for (var i = 0; i < 7; i++) {
                 await memoryStream.WriteAsync(BitConverter.GetBytes(tendency));
-                await memoryStream.WriteAsync(BitConverter.GetBytes((short)0));
+                await memoryStream.WriteAsync(BitConverter.GetBytes(0));
             }
             string responseData = await PrepareResponse(httpContext, 0x0e, memoryStream.ToArray());
             await SendResponse(httpContext, responseData);
@@ -228,6 +228,12 @@ namespace HtcPlugin.DeSServer.Controller {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
+
+            var stringData = new StringBuilder();
+            foreach ((string key, string value) in data) {
+                stringData.Append($"{key}={value},");
+            }
+            HtcPlugin.Logger.LogInfo(stringData);
 
             string responseData = await PrepareResponse(httpContext, 0x09, new[] { (byte)'\x01' });
             await SendResponse(httpContext, responseData);

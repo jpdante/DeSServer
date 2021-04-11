@@ -11,9 +11,11 @@
         public uint Sessions { get; }
         public int MsgRating { get; }
         public int Tendency { get; }
+        public int DesiredTendency { get; }
+        public bool UseDesired { get; }
         public uint PlayTime { get; }
 
-        public PlayerInfo(string playerId, int gradeS, int gradeA, int gradeB, int gradeC, int gradeD, uint logins, uint sessions, int msgRating, int tendency, uint playTime) {
+        public PlayerInfo(string playerId, int gradeS, int gradeA, int gradeB, int gradeC, int gradeD, uint logins, uint sessions, int msgRating, int tendency, int desiredTendency, bool useDesired, uint playTime) {
             PlayerId = playerId;
             GradeS = gradeS;
             GradeA = gradeA;
@@ -24,6 +26,8 @@
             Sessions = sessions;
             MsgRating = msgRating;
             Tendency = tendency;
+            DesiredTendency = desiredTendency;
+            UseDesired = useDesired;
             PlayTime = playTime;
         }
     }

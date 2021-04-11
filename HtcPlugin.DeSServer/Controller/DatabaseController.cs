@@ -16,7 +16,7 @@ namespace HtcPlugin.DeSServer.Controller {
         [HttpPost("/api/" + Version + "/user")]
         public static async Task GetUser(HttpContext httpContext, GetUser user) {
             await using var conn = await DatabaseContext.GetConnection();
-            await using var cmd = new MySqlCommand("SELECT grade_s, grade_a, grade_b, grade_c, grade_d, logins, sessions, msg_rating, tendency, play_time, creation_date FROM players WHERE player_id = @playerId;", conn);
+            await using var cmd = new MySqlCommand("SELECT grade_s, grade_a, grade_b, grade_c, grade_d, logins, sessions, msg_rating, tendency, desired_tendency, use_desired, play_time, creation_date FROM players WHERE player_id = @playerId;", conn);
             cmd.Parameters.AddWithValue("playerId", $"{user.Username}0");
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync()) {
@@ -29,8 +29,10 @@ namespace HtcPlugin.DeSServer.Controller {
                 uint sessions = reader.GetUInt32(6);
                 int msgRating = reader.GetInt32(7);
                 int tendency = reader.GetInt32(8);
-                uint playTime = reader.GetUInt32(9);
-                var creationDate = reader.GetDateTime(10);
+                int desiredTendency = reader.GetInt32(9);
+                bool useDesired = reader.GetBoolean(10);
+                uint playTime = reader.GetUInt32(11);
+                var creationDate = reader.GetDateTime(12);
                 await JsonSerializer.SerializeAsync(httpContext.Response.Body, new {
                     success = true,
                     player = new {
@@ -43,6 +45,8 @@ namespace HtcPlugin.DeSServer.Controller {
                         sessions,
                         msgRating,
                         tendency,
+                        desiredTendency,
+                        useDesired,
                         playTime,
                         creationDate = ((DateTimeOffset)creationDate).ToUnixTimeSeconds(),
                         creationDateString = creationDate,
@@ -56,6 +60,32 @@ namespace HtcPlugin.DeSServer.Controller {
                         message = "User not found."
                     }
                 });
+            }
+        }
+
+        [HttpPost("/api/" + Version + "/tendency")]
+        public static async Task SetTendency(HttpContext httpContext, SetTendency tendency) {
+            await using var conn = await DatabaseContext.GetConnection();
+
+            await using (var cmd = new MySqlCommand("SELECT creation_date FROM players WHERE player_id = @playerId;", conn)) {
+                cmd.Parameters.AddWithValue("playerId", $"{tendency.Username}0");
+                await using (var reader = await cmd.ExecuteReaderAsync()) {
+                    if (!await reader.ReadAsync() || !reader.HasRows) {
+                        await JsonSerializer.SerializeAsync(httpContext.Response.Body, new { success = false, error = new { id = 404, message = "User not found." } });
+                        return;
+                    }
+                }
+            }
+
+            await using (var cmd = new MySqlCommand("UPDATE players SET desired_tendency = @desiredTendency, use_desired = @useDesired WHERE player_id = @playerId;", conn)) {
+                cmd.Parameters.AddWithValue("playerId", $"{tendency.Username}0");
+                cmd.Parameters.AddWithValue("desiredTendency", tendency.DesiredTendency);
+                cmd.Parameters.AddWithValue("useDesired", tendency.UseDesired);
+                await cmd.ExecuteNonQueryAsync();
+                await JsonSerializer.SerializeAsync(httpContext.Response.Body, new {
+                    success = true
+                });
+                return;
             }
         }
 

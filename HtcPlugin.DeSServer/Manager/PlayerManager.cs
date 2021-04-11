@@ -75,7 +75,7 @@ namespace HtcPlugin.DeSServer.Manager {
         public async Task<string> InitPlayer(string remoteHost, string playerName, string index) {
             var playerId = $"{playerName}{index}";
             await using var conn = await DatabaseContext.GetConnection();
-            await using var cmd = new MySqlCommand("INSERT INTO players (player_id, grade_s, grade_a, grade_b, grade_c, grade_d, logins, sessions, msg_rating, tendency, play_time) VALUES (@playerId, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0) ON DUPLICATE KEY UPDATE logins = logins + 1;", conn);
+            await using var cmd = new MySqlCommand("INSERT INTO players (player_id, grade_s, grade_a, grade_b, grade_c, grade_d, logins, sessions, msg_rating, tendency, desired_tendency, use_desired, play_time) VALUES (@playerId, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, false, 0) ON DUPLICATE KEY UPDATE logins = logins + 1;", conn);
             cmd.Parameters.AddWithValue("playerId", playerId);
             await cmd.ExecuteNonQueryAsync();
             if (_playersByNPID.TryGetValue(playerId, out var p1)) await RemovePlayer(p1, conn);

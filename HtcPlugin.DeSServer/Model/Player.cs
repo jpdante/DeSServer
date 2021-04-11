@@ -18,14 +18,13 @@ namespace HtcPlugin.DeSServer.Model {
             LoginDateTime = DateTime.Now;
         }
 
-        public async Task<short> GetWorldTendency() {
+        public async Task<int> GetWorldTendency() {
             await using var conn = await DatabaseContext.GetConnection();
-            await using var cmd = new MySqlCommand("SELECT tendency FROM players WHERE player_id = @playerId;", conn);
+            await using var cmd = new MySqlCommand("SELECT tendency, desired_tendency, use_desired FROM players WHERE player_id = @playerId;", conn);
             cmd.Parameters.AddWithValue("playerId", PlayerId);
-            short worldTendency = 0;
             await using var reader = await cmd.ExecuteReaderAsync();
             if (!await reader.ReadAsync() || !reader.HasRows) throw new HttpException(500, "Failed to get world tendency.");
-            worldTendency = reader.GetInt16(0);
+            int worldTendency = reader.GetBoolean(2) ? reader.GetInt32(1) : reader.GetInt32(0);
             return worldTendency;
         }
 
@@ -65,21 +64,31 @@ namespace HtcPlugin.DeSServer.Model {
 
         public async Task FinalizeMultiPlay(uint gradeS, uint gradeA, uint gradeB, uint gradeC, uint gradeD) {
             await using var conn = await DatabaseContext.GetConnection();
-            await using var cmd = new MySqlCommand("UPDATE players SET grade_s = grade_s + @gradeS, grade_1 = grade_1 + @gradeA, grade_b = grade_b + @gradeB, grade_c = grade_c + @gradeC, grade_d = grade_d + @gradeD WHERE player_id = @playerId;", conn);
+            await using var cmd = new MySqlCommand("UPDATE players SET grade_s = grade_s + @gradeS, grade_a = grade_a + @gradeA, grade_b = grade_b + @gradeB, grade_c = grade_c + @gradeC, grade_d = grade_d + @gradeD WHERE player_id = @playerId;", conn);
             cmd.Parameters.AddWithValue("playerId", PlayerId);
+            cmd.Parameters.AddWithValue("gradeS", gradeS);
+            cmd.Parameters.AddWithValue("gradeA", gradeA);
+            cmd.Parameters.AddWithValue("gradeB", gradeB);
+            cmd.Parameters.AddWithValue("gradeC", gradeC);
+            cmd.Parameters.AddWithValue("gradeD", gradeD);
             await cmd.ExecuteNonQueryAsync();
         }
 
         public async Task UpdateMultiPlay(uint gradeS, uint gradeA, uint gradeB, uint gradeC, uint gradeD) {
             await using var conn = await DatabaseContext.GetConnection();
-            await using var cmd = new MySqlCommand("UPDATE players SET grade_s = grade_s + @gradeS, grade_1 = grade_1 + @gradeA, grade_b = grade_b + @gradeB, grade_c = grade_c + @gradeC, grade_d = grade_d + @gradeD WHERE player_id = @playerId;", conn);
+            await using var cmd = new MySqlCommand("UPDATE players SET grade_s = grade_s + @gradeS, grade_a = grade_a + @gradeA, grade_b = grade_b + @gradeB, grade_c = grade_c + @gradeC, grade_d = grade_d + @gradeD WHERE player_id = @playerId;", conn);
             cmd.Parameters.AddWithValue("playerId", PlayerId);
+            cmd.Parameters.AddWithValue("gradeS", gradeS);
+            cmd.Parameters.AddWithValue("gradeA", gradeA);
+            cmd.Parameters.AddWithValue("gradeB", gradeB);
+            cmd.Parameters.AddWithValue("gradeC", gradeC);
+            cmd.Parameters.AddWithValue("gradeD", gradeD);
             await cmd.ExecuteNonQueryAsync();
         }
 
         public async Task<PlayerInfo> GetPlayerInfo() {
             await using var conn = await DatabaseContext.GetConnection();
-            await using var cmd = new MySqlCommand("SELECT grade_s, grade_a, grade_b, grade_c, grade_d, logins, sessions, msg_rating, tendency, play_time FROM players WHERE player_id = @playerId;", conn);
+            await using var cmd = new MySqlCommand("SELECT grade_s, grade_a, grade_b, grade_c, grade_d, logins, sessions, msg_rating, tendency, desired_tendency, use_desired, play_time FROM players WHERE player_id = @playerId;", conn);
             cmd.Parameters.AddWithValue("playerId", PlayerId);
             await using var reader = await cmd.ExecuteReaderAsync();
             if (!await reader.ReadAsync() || !reader.HasRows) throw new HttpException(500, "Failed to get player info.");
@@ -94,7 +103,9 @@ namespace HtcPlugin.DeSServer.Model {
                 reader.GetUInt32(6),
                 reader.GetInt32(7),
                 reader.GetInt32(8),
-                reader.GetUInt32(9)
+                reader.GetInt32(9),
+                reader.GetBoolean(10),
+                reader.GetUInt32(11)
                 );
         }
     }

@@ -13,6 +13,7 @@ namespace HtcPlugin.DeSServer.Core {
 
         public DeSConfig() : base(1) {
             DeSServer = new DeSServerConfig {
+                Debug = false,
                 Host = "127.0.0.1",
                 Port = 18000,
                 ReturnLocalhostOnLocal = true,
@@ -40,6 +41,9 @@ namespace HtcPlugin.DeSServer.Core {
     }
 
     public class DeSServerConfig {
+
+        [JsonPropertyName("debug")]
+        public bool Debug { get; set; }
 
         [JsonPropertyName("host")]
         public string Host { get; set; }

@@ -32,14 +32,16 @@ namespace HtcPlugin.DeSServer.Controller {
             httpContext.Response.Headers.Add("Connection", "close");
             httpContext.Response.Headers.Add("Content-Type", "text/html; charset=UTF-8");
             await httpContext.Response.WriteAsync(data);
-            /*HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} <= {{");
-            HtcPlugin.Logger.LogInfo($"    Headers {{");
-            foreach (KeyValuePair<string, StringValues> headers in httpContext.Response.Headers) {
-                HtcPlugin.Logger.LogInfo($"        {headers.Key}: \"{headers.Value}\"");
+            if (HtcPlugin.Config.DeSServer.Debug) {
+                HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} <= {{");
+                HtcPlugin.Logger.LogInfo($"    Headers {{");
+                foreach (KeyValuePair<string, StringValues> headers in httpContext.Response.Headers) {
+                    HtcPlugin.Logger.LogInfo($"        {headers.Key}: \"{headers.Value}\"");
+                }
+                HtcPlugin.Logger.LogInfo($"    }}");
+                HtcPlugin.Logger.LogInfo($"    Body: {data.Remove(data.Length - 1, 1)}");
+                HtcPlugin.Logger.LogInfo($"}}");
             }
-            HtcPlugin.Logger.LogInfo($"    }}");
-            HtcPlugin.Logger.LogInfo($"    Body: {data.Remove(data.Length - 1, 1)}");
-            HtcPlugin.Logger.LogInfo($"}}");*/
         }
 
         private static async Task<string> GetAndDecryptData(HttpContext httpContext) {
@@ -106,7 +108,8 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         private static void PrintRequest(HttpContext httpContext, string data = null) {
-            /*HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} => {httpContext.Request.Method} {httpContext.Request.Path} {{");
+            if (!HtcPlugin.Config.DeSServer.Debug) return;
+            HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} => {httpContext.Request.Method} {httpContext.Request.Path} {{");
             HtcPlugin.Logger.LogInfo($"    Host: {httpContext.Request.Host}");
             HtcPlugin.Logger.LogInfo($"    ContentType: {httpContext.Request.ContentType}");
             HtcPlugin.Logger.LogInfo($"    Query: {httpContext.Request.QueryString}");
@@ -114,9 +117,10 @@ namespace HtcPlugin.DeSServer.Controller {
             foreach ((string key, var value) in httpContext.Request.Headers) {
                 HtcPlugin.Logger.LogInfo($"        {key}: \"{value}\"");
             }
+
             HtcPlugin.Logger.LogInfo($"    }},");
             if (data != null) HtcPlugin.Logger.LogInfo($"    Body: {data}");
-            HtcPlugin.Logger.LogInfo($"}}");*/
+            HtcPlugin.Logger.LogInfo($"}}");
         }
 
         [HttpPost("/demons-souls-us/ss.info")]
@@ -602,13 +606,13 @@ namespace HtcPlugin.DeSServer.Controller {
             if (!int.TryParse(messageIdRaw, out int messageId)) throw new HttpException(500, "Failed to parse messageID.");
             if (!int.TryParse(mainMsgIdRaw, out int mainMsgId)) throw new HttpException(500, "Failed to parse mainMsgID.");
             if (!int.TryParse(addMsgCateIdRaw, out int addMsgCateId)) throw new HttpException(500, "Failed to parse messageID.");
-            if (!int.TryParse(qwcwbRaw, out int qwcwb)) throw new HttpException(500, "Failed to parse qwcwb.");
-            if (!int.TryParse(qwclrRaw, out int qwclr)) throw new HttpException(500, "Failed to parse qwclr.");
-            if (!int.TryParse(isBlackRaw, out int isBlack)) throw new HttpException(500, "Failed to parse isBlack.");
+            if (!uint.TryParse(qwcwbRaw, out uint qwcwb)) throw new HttpException(500, "Failed to parse qwcwb.");
+            if (!uint.TryParse(qwclrRaw, out uint qwclr)) throw new HttpException(500, "Failed to parse qwclr.");
+            if (!uint.TryParse(isBlackRaw, out uint isBlack)) throw new HttpException(500, "Failed to parse isBlack.");
             if (!int.TryParse(playerLevelRaw, out int playerLevel)) throw new HttpException(500, "Failed to parse qwcwb.");
 
             HtcPlugin.Server.PlayerManager.Heartbeat(player);
-            bool success = await HtcPlugin.Server.SessionManager.CreateSession(player, blockId, posX, posY, posZ, rotX, rotY, rotZ, messageId, mainMsgId, addMsgCateId, clientPlayerInfo, qwcwb, qwclr, isBlack != 2, playerLevel);
+            bool success = await HtcPlugin.Server.SessionManager.CreateSession(player, blockId, posX, posY, posZ, rotX, rotY, rotZ, messageId, mainMsgId, addMsgCateId, clientPlayerInfo, qwcwb, qwclr, isBlack, playerLevel);
 
             string responseData = await PrepareResponse(httpContext, 0x0a, new[] { success ? (byte)'\x01' : (byte)'\x00' }); // Test if sending 0x00 when fail to cancel the request.
             await SendResponse(httpContext, responseData);

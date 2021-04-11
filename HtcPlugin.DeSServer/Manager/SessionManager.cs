@@ -48,10 +48,10 @@ namespace HtcPlugin.DeSServer.Manager {
             return Task.CompletedTask;
         }
 
-        public async Task<bool> CreateSession(Player player, uint blockId, float posX, float posY, float posZ, float rotX, float rotY, float rotZ, int messageId, int mainMsgId, int addMsgCateId, string clientPlayerInfo, int qwcwb, int qwclr, bool isBlack, int playerLevel) {
+        public async Task<bool> CreateSession(Player player, uint blockId, float posX, float posY, float posZ, float rotX, float rotY, float rotZ, int messageId, int mainMsgId, int addMsgCateId, string clientPlayerInfo, uint qwcwb, uint qwclr, uint phantonType, int playerLevel) {
             var playerInfo = await player.GetPlayerInfo();
             bool success = _availableSessionIds.TryDequeue(out uint id);
-            var session = new Session(id, playerInfo, blockId,  posX,  posY,  posZ,  rotX,  rotY,  rotZ,  messageId,  mainMsgId,  addMsgCateId, clientPlayerInfo,  qwcwb,  qwclr, isBlack,  playerLevel);
+            var session = new Session(id, playerInfo, blockId,  posX,  posY,  posZ,  rotX,  rotY,  rotZ,  messageId,  mainMsgId,  addMsgCateId, clientPlayerInfo,  qwcwb,  qwclr, phantonType,  playerLevel);
             _sessions.Add(session);
             _sessionsByNPID.Add(session.PlayerInfo.PlayerId, session);
             HtcPlugin.Logger.LogInfo($"[SessionManager] Create new session for {session.PlayerInfo.PlayerId} ID: {session.Id}");

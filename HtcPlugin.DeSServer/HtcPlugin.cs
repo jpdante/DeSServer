@@ -57,6 +57,7 @@ namespace HtcPlugin.DeSServer {
         }
 
         public override async Task ThrowException(HttpContext httpContext, Exception exception) {
+            Logger.LogError($"{httpContext.Connection.Id} <= {exception.Message}");
             await httpContext.Response.WriteAsync(exception.Message);
         }
     }

@@ -19,9 +19,9 @@ namespace HtcPlugin.DeSServer.Model {
         public int MainMsgId { get; }
         public int MsgCateId { get; }
         public string ClientPlayerInfo { get; }
-        public int Qwcwb { get; }
-        public int Qwclr { get; }
-        public bool IsBlack { get; }
+        public uint Qwcwb { get; }
+        public uint Qwclr { get; }
+        public uint PhantonType { get; }
         public int PlayerLevel { get; }
         public DateTime LastHeartbeat;
 
@@ -30,8 +30,8 @@ namespace HtcPlugin.DeSServer.Model {
             float posX, float posY, float posZ,
             float rotX, float rotY, float rotZ,
             int msgId, int mainMsgId, int msgCateId,
-            string clientPlayerInfo, int qwcwb, int qwclr,
-            bool isBlack, int playerLevel) {
+            string clientPlayerInfo, uint qwcwb, uint qwclr,
+            uint phantonType, int playerLevel) {
             Id = id;
             PlayerInfo = playerInfo;
             BlockId = blockId;
@@ -47,7 +47,7 @@ namespace HtcPlugin.DeSServer.Model {
             ClientPlayerInfo = clientPlayerInfo;
             Qwcwb = qwcwb;
             Qwclr = qwclr;
-            IsBlack = isBlack;
+            PhantonType = phantonType;
             PlayerLevel = playerLevel;
             LastHeartbeat = DateTime.Now;
         }
@@ -76,7 +76,7 @@ namespace HtcPlugin.DeSServer.Model {
             await memoryStream.WriteAsync(Encoding.ASCII.GetBytes($"{ClientPlayerInfo}\x00"));
             await memoryStream.WriteAsync(BitConverter.GetBytes(Qwcwb));
             await memoryStream.WriteAsync(BitConverter.GetBytes(Qwclr));
-            memoryStream.WriteByte(IsBlack ? (byte) 1 : (byte) 2);
+            memoryStream.WriteByte((byte) PhantonType);
             return memoryStream.ToArray();
         }
 

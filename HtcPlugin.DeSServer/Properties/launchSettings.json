@@ -2,7 +2,7 @@
   "profiles": {
     "HtcPlugin.DeSServer": {
       "commandName": "Executable",
-      "executablePath": "C:\\Users\\jpdante\\Documents\\GitHub\\DeSServer\\HtcSharp\\HtcSharp.Server.exe",
+      "executablePath": "C:\\Users\\jpdante\\Documents\\GitHub\\DeSServer\\HtcSharp\\HtcSharp.exe",
       "workingDirectory": "C:\\Users\\jpdante\\Documents\\GitHub\\DeSServer\\HtcSharp\\"
     }
   }

@@ -4,20 +4,23 @@ using System.Reflection;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Core;
 using HtcSharp.Abstractions;
+using HtcSharp.HttpModule;
+using HtcSharp.HttpModule.Abstractions;
+using HtcSharp.HttpModule.Directive;
+using HtcSharp.HttpModule.Http;
 using HtcSharp.HttpModule.Mvc;
 using HtcSharp.Logging;
 using HtcSharp.Shared.IO;
 using RedNX.Config;
 
 namespace HtcPlugin.DeSServer {
-    public class HtcPlugin : HttpMvc, IPlugin {
-        public string Name => "DeS Server";
+    public class HtcPlugin : HttpMvc, IPlugin, IHttpPage {
+        public string Name => "DeS";
         public string Version => DeSServer.Version.GetVersion();
 
         internal static readonly ILogger Logger = LoggerManager.GetLogger(MethodBase.GetCurrentMethod()?.DeclaringType);
         internal static DeSConfig Config { get; private set; }
         internal static Core.DeSServer Server { get; private set; }
-        internal static string Endpoint { get; private set; }
 
         public async Task Init(IServiceProvider serviceProvider) {
             string configPath = Path.Combine(PathExt.GetConfigPath(true, "des-server"), "config.json");
@@ -27,11 +30,11 @@ namespace HtcPlugin.DeSServer {
             }
             Config = await ConfigManager.LoadFromFileAsync<DeSConfig>(configPath);
 
-            Endpoint = $"0.0.0.0:{Config.DeSServer.Port}";
             _ = new DatabaseContext(Config.Db);
             Server = new Core.DeSServer();
 
             LoadControllers(Assembly.GetExecutingAssembly());
+            this.RegisterMvc(this);
         }
 
         public async Task Enable() {
@@ -48,6 +51,11 @@ namespace HtcPlugin.DeSServer {
 
         public void Dispose() {
 
+        }
+
+        public Task OnHttpPageRequest(DirectiveDelegate next, HtcHttpContext httpContext, string fileName) {
+            Logger.LogInfo(fileName);
+            return Task.CompletedTask;
         }
     }
 }

@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Core;
 using HtcPlugin.DeSServer.Model;
-using HtcSharp.Core.Logging.Abstractions;
+using HtcSharp.Logging;
 using MySqlConnector;
 
 namespace HtcPlugin.DeSServer.Manager {

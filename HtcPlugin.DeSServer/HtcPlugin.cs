@@ -1,31 +1,25 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Core;
-using HtcSharp.Core.Logging.Abstractions;
-using HtcSharp.Core.Plugin;
-using HtcSharp.Core.Plugin.Abstractions;
-using HtcSharp.HttpModule;
-using HtcSharp.HttpModule.Http.Abstractions;
-using HtcSharp.HttpModule.Http.Abstractions.Extensions;
+using HtcSharp.Abstractions;
+using HtcSharp.HttpModule.Mvc;
+using HtcSharp.Logging;
+using HtcSharp.Shared.IO;
 using RedNX.Config;
-using RedNX.IO;
 
 namespace HtcPlugin.DeSServer {
     public class HtcPlugin : HttpMvc, IPlugin {
-
-        public string Name => "DES Server";
+        public string Name => "DeS Server";
         public string Version => DeSServer.Version.GetVersion();
 
-        internal static ILogger Logger { get; private set; }
+        internal static readonly ILogger Logger = LoggerManager.GetLogger(MethodBase.GetCurrentMethod()?.DeclaringType);
         internal static DeSConfig Config { get; private set; }
         internal static Core.DeSServer Server { get; private set; }
         internal static string Endpoint { get; private set; }
 
-        public async Task Load(PluginServerContext pluginServerContext, ILogger logger) {
-            Logger = logger;
+        public async Task Init(IServiceProvider serviceProvider) {
             string configPath = Path.Combine(PathExt.GetConfigPath(true, "des-server"), "config.json");
             if (!File.Exists(configPath)) {
                 Config = new DeSConfig();
@@ -37,7 +31,7 @@ namespace HtcPlugin.DeSServer {
             _ = new DatabaseContext(Config.Db);
             Server = new Core.DeSServer();
 
-            Setup(Assembly.GetExecutingAssembly(), logger);
+            LoadControllers(Assembly.GetExecutingAssembly());
         }
 
         public async Task Enable() {
@@ -48,17 +42,12 @@ namespace HtcPlugin.DeSServer {
             await Server.Disable();
         }
 
-        public bool IsCompatible(int htcMajor, int htcMinor, int htcPatch) {
+        public bool IsCompatible(IVersion version) {
             return true;
         }
 
-        public override Task<bool> BeforePageRequest(HttpContext httpContext, string filename) {
-            return Task.FromResult(!httpContext.ServerInfo.Endpoints.Contains(Endpoint));
-        }
+        public void Dispose() {
 
-        public override async Task ThrowException(HttpContext httpContext, Exception exception) {
-            Logger.LogError($"{httpContext.Connection.Id} <= {exception.Message}");
-            await httpContext.Response.WriteAsync(exception.Message);
         }
     }
 }

@@ -18,22 +18,20 @@ namespace HtcPlugin.DeSServer.Core {
             GhostManager = new GhostManager();
         }
 
-        public Task Enable() {
-            PlayerManager.Enable();
-            MessageManager.Enable();
-            GhostManager.Enable();
-            ReplayManager.Enable();
-            SessionManager.Enable();
-            return Task.CompletedTask;
+        public async Task Enable() {
+            await PlayerManager.Enable();
+            await MessageManager.Enable();
+            await GhostManager.Enable();
+            await ReplayManager.Enable();
+            await SessionManager.Enable();
         }
 
-        public Task Disable() {
-            PlayerManager.Disable();
-            MessageManager.Disable();
-            GhostManager.Disable();
-            ReplayManager.Disable();
-            SessionManager.Disable();
-            return Task.CompletedTask;
+        public async Task Disable() {
+            await PlayerManager.Disable();
+            await MessageManager.Disable();
+            await GhostManager.Disable();
+            await ReplayManager.Disable();
+            await SessionManager.Disable();
         }
     }
 }

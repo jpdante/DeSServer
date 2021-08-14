@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using HtcPlugin.DeSServer.Core;
 using HtcPlugin.DeSServer.Model;
-using HtcSharp.Core.Logging.Abstractions;
+using HtcSharp.Logging;
 using MySqlConnector;
 // ReSharper disable InconsistentNaming
 

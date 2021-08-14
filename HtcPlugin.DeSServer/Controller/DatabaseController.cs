@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Controller.DatabaseModels;
 using HtcPlugin.DeSServer.Core;
-using HtcSharp.HttpModule.Http.Abstractions;
+using HtcSharp.HttpModule.Http;
 using HtcSharp.HttpModule.Mvc;
 using MySqlConnector;
 
@@ -14,7 +14,7 @@ namespace HtcPlugin.DeSServer.Controller {
         public const string Version = "v1";
 
         [HttpPost("/api/" + Version + "/user")]
-        public static async Task GetUser(HttpContext httpContext, GetUser user) {
+        public static async Task GetUser(HtcHttpContext httpContext, GetUser user) {
             await using var conn = await DatabaseContext.GetConnection();
             await using var cmd = new MySqlCommand("SELECT grade_s, grade_a, grade_b, grade_c, grade_d, logins, sessions, msg_rating, tendency, desired_tendency, use_desired, play_time, creation_date FROM players WHERE player_id = @playerId;", conn);
             cmd.Parameters.AddWithValue("playerId", $"{user.Username}0");
@@ -64,7 +64,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/api/" + Version + "/tendency")]
-        public static async Task SetTendency(HttpContext httpContext, SetTendency tendency) {
+        public static async Task SetTendency(HtcHttpContext httpContext, SetTendency tendency) {
             await using var conn = await DatabaseContext.GetConnection();
 
             await using (var cmd = new MySqlCommand("SELECT creation_date FROM players WHERE player_id = @playerId;", conn)) {
@@ -90,7 +90,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/api/" + Version + "/message")]
-        public static async Task GetMessage(HttpContext httpContext, GetMessage message) {
+        public static async Task GetMessage(HtcHttpContext httpContext, GetMessage message) {
             await using var conn = await DatabaseContext.GetConnection();
             await using var cmd = new MySqlCommand("SELECT id, block_id, pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, msg_id, main_msg_id, msg_cate_id, rating, creation_date FROM messages WHERE player_id = @playerId ORDER BY id DESC LIMIT 1;", conn);
             cmd.Parameters.AddWithValue("playerId", $"{message.Username}0");
@@ -140,7 +140,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/api/" + Version + "/messages")]
-        public static async Task GetMessages(HttpContext httpContext, GetMessages get) {
+        public static async Task GetMessages(HtcHttpContext httpContext, GetMessages get) {
             await using var conn = await DatabaseContext.GetConnection();
             await using var cmd = new MySqlCommand("SELECT id, block_id, pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, msg_id, main_msg_id, msg_cate_id, rating, creation_date FROM messages WHERE player_id = @playerId ORDER BY id DESC LIMIT @from,@to;", conn);
             cmd.Parameters.AddWithValue("playerId", $"{get.Username}0");
@@ -186,7 +186,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/api/" + Version + "/replay")]
-        public static async Task GetReplay(HttpContext httpContext, GetReplay replay) {
+        public static async Task GetReplay(HtcHttpContext httpContext, GetReplay replay) {
             await using var conn = await DatabaseContext.GetConnection();
             await using var cmd = new MySqlCommand("SELECT id, block_id, pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, msg_id, main_msg_id, msg_cate_id, creation_date FROM replays WHERE player_id = @playerId ORDER BY id DESC LIMIT 1;", conn);
             cmd.Parameters.AddWithValue("playerId", $"{replay.Username}0");
@@ -234,7 +234,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/api/" + Version + "/replays")]
-        public static async Task GetReplays(HttpContext httpContext, GetReplays get) {
+        public static async Task GetReplays(HtcHttpContext httpContext, GetReplays get) {
             await using var conn = await DatabaseContext.GetConnection();
             await using var cmd = new MySqlCommand("SELECT id, block_id, pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, msg_id, main_msg_id, msg_cate_id, creation_date FROM replays WHERE player_id = @playerId ORDER BY id DESC LIMIT @from,@to;", conn);
             cmd.Parameters.AddWithValue("playerId", $"{get.Username}0");

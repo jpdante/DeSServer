@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Core;
-using HtcSharp.HttpModule.Mvc;
+using HtcSharp.HttpModule.Mvc.Exceptions;
 using MySqlConnector;
 
 namespace HtcPlugin.DeSServer.Model {

@@ -5,7 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Model;
-using HtcSharp.Core.Logging.Abstractions;
+using HtcSharp.Logging;
+
 // ReSharper disable InconsistentNaming
 
 namespace HtcPlugin.DeSServer.Manager {

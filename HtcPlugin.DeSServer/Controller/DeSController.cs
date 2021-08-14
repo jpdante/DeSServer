@@ -7,17 +7,18 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Model;
-using HtcSharp.Core.Logging.Abstractions;
-using HtcSharp.HttpModule.Http.Abstractions;
-using HtcSharp.HttpModule.Http.Abstractions.Extensions;
+using HtcSharp.HttpModule.Http;
 using HtcSharp.HttpModule.Mvc;
+using HtcSharp.HttpModule.Mvc.Exceptions;
+using HtcSharp.Logging;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 // ReSharper disable InconsistentNaming
 
 namespace HtcPlugin.DeSServer.Controller {
     public class DeSController {
 
-        private static async Task<string> PrepareResponse(HttpContext httpContext, byte cmd, byte[] data) {
+        private static async Task<string> PrepareResponse(HtcHttpContext httpContext, byte cmd, byte[] data) {
             var memoryStream = new MemoryStream();
             memoryStream.WriteByte(cmd);
             await memoryStream.WriteAsync(BitConverter.GetBytes((uint)data.Length + 5));
@@ -25,7 +26,7 @@ namespace HtcPlugin.DeSServer.Controller {
             return Convert.ToBase64String(memoryStream.ToArray()) + "\n";
         }
 
-        private static async Task SendResponse(HttpContext httpContext, string data) {
+        private static async Task SendResponse(HtcHttpContext httpContext, string data) {
             httpContext.Response.StatusCode = 200;
             httpContext.Response.Headers.Add("Date", new StringValues(DateTime.Now.ToString("r")));
             httpContext.Response.Headers.Add("Content-Length", data.Length.ToString());
@@ -44,7 +45,7 @@ namespace HtcPlugin.DeSServer.Controller {
             }
         }
 
-        private static async Task<string> GetAndDecryptData(HttpContext httpContext) {
+        private static async Task<string> GetAndDecryptData(HtcHttpContext httpContext) {
             if (!httpContext.Request.Headers.TryGetValue("Content-Length", out var contentLengthRaw)) throw new HttpException(500, "Missing Content-Length.");
             if (!int.TryParse(contentLengthRaw, out int contentLength)) throw new HttpException(500, "Failed to convert Content-Length to integer.");
             if (contentLength > 10000000) throw new HttpException(500, "Request is too big.");
@@ -107,7 +108,7 @@ namespace HtcPlugin.DeSServer.Controller {
             return parameters;
         }
 
-        private static void PrintRequest(HttpContext httpContext, string data = null) {
+        private static void PrintRequest(HtcHttpContext httpContext, string data = null) {
             if (!HtcPlugin.Config.DeSServer.Debug) return;
             HtcPlugin.Logger.LogInfo($"{httpContext.Connection.Id} => {httpContext.Request.Method} {httpContext.Request.Path} {{");
             HtcPlugin.Logger.LogInfo($"    Host: {httpContext.Request.Host}");
@@ -124,7 +125,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/demons-souls-us/ss.info")]
-        public static async Task SsInfo(HttpContext httpContext) {
+        public static async Task SsInfo(HtcHttpContext httpContext) {
             httpContext.Response.StatusCode = 200;
             string host;
             if (HtcPlugin.Config.DeSServer.ReturnLocalhostOnLocal && httpContext.Connection.RemoteIpAddress.ToString().Equals("127.0.0.1")) {
@@ -175,7 +176,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/login.spd")]
-        public static async Task Login(HttpContext httpContext) {
+        public static async Task Login(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -191,7 +192,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/initializeCharacter.spd")]
-        public static async Task InitializeCharacter(HttpContext httpContext) {
+        public static async Task InitializeCharacter(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -205,7 +206,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/getQWCData.spd")]
-        public static async Task GetQWCData(HttpContext httpContext) {
+        public static async Task GetQWCData(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -224,7 +225,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/addQWCData.spd")]
-        public static async Task AddQWCData(HttpContext httpContext) {
+        public static async Task AddQWCData(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -233,14 +234,14 @@ namespace HtcPlugin.DeSServer.Controller {
             foreach ((string key, string value) in data) {
                 stringData.Append($"{key}={value},");
             }
-            HtcPlugin.Logger.LogInfo(stringData);
+            HtcPlugin.Logger.LogInfo(stringData.ToString());
 
             string responseData = await PrepareResponse(httpContext, 0x09, new[] { (byte)'\x01' });
             await SendResponse(httpContext, responseData);
         }
 
         [HttpPost("/cgi-bin/getMultiPlayGrade.spd")]
-        public static async Task GetMultiPlayGrade(HttpContext httpContext) {
+        public static async Task GetMultiPlayGrade(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -260,7 +261,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/getBloodMessageGrade.spd")]
-        public static async Task GetBloodMessageGrade(HttpContext httpContext) {
+        public static async Task GetBloodMessageGrade(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -278,7 +279,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/getTimeMessage.spd")]
-        public static async Task GetTimeMessage(HttpContext httpContext) {
+        public static async Task GetTimeMessage(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -292,7 +293,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/getAgreement.spd")]
-        public static async Task GetAgreement(HttpContext httpContext) {
+        public static async Task GetAgreement(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -302,7 +303,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/addNewAccount.spd")]
-        public static async Task AddNewAccount(HttpContext httpContext) {
+        public static async Task AddNewAccount(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -312,7 +313,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/getBloodMessage.spd")]
-        public static async Task GetBloodMessage(HttpContext httpContext) {
+        public static async Task GetBloodMessage(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -337,7 +338,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/addBloodMessage.spd")]
-        public static async Task AddBloodMessage(HttpContext httpContext) {
+        public static async Task AddBloodMessage(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -388,7 +389,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/updateBloodMessageGrade.spd")]
-        public static async Task UpdateBloodMessageGrade(HttpContext httpContext) {
+        public static async Task UpdateBloodMessageGrade(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -402,7 +403,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/deleteBloodMessage.spd")]
-        public static async Task DeleteBloodMessage(HttpContext httpContext) {
+        public static async Task DeleteBloodMessage(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -416,7 +417,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/getReplayList.spd")]
-        public static async Task GetReplayList(HttpContext httpContext) {
+        public static async Task GetReplayList(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -437,7 +438,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/getReplayData.spd")]
-        public static async Task GetReplayData(HttpContext httpContext) {
+        public static async Task GetReplayData(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -459,7 +460,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/addReplayData.spd")]
-        public static async Task AddReplayData(HttpContext httpContext) {
+        public static async Task AddReplayData(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -511,7 +512,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/getWanderingGhost.spd")]
-        public static async Task GetWanderingGhost(HttpContext httpContext) {
+        public static async Task GetWanderingGhost(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -540,7 +541,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/setWanderingGhost.spd")]
-        public static async Task SetWanderingGhost(HttpContext httpContext) {
+        public static async Task SetWanderingGhost(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -560,7 +561,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/getSosData.spd")]
-        public static async Task GetSosData(HttpContext httpContext) {
+        public static async Task GetSosData(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -579,7 +580,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/addSosData.spd")]
-        public static async Task AddSosData(HttpContext httpContext) {
+        public static async Task AddSosData(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -625,7 +626,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/checkSosData.spd")]
-        public static async Task CheckSosData(HttpContext httpContext) {
+        public static async Task CheckSosData(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -642,7 +643,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/outOfBlock.spd")]
-        public static async Task OutOfBlock(HttpContext httpContext) {
+        public static async Task OutOfBlock(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -657,7 +658,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/summonOtherCharacter.spd")]
-        public static async Task SummonOtherCharacter(HttpContext httpContext) {
+        public static async Task SummonOtherCharacter(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -673,7 +674,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/summonBlackGhost.spd")]
-        public static async Task SummonBlackGhost(HttpContext httpContext) {
+        public static async Task SummonBlackGhost(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -686,7 +687,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/initializeMultiPlay.spd")]
-        public static async Task InitializeMultiPlay(HttpContext httpContext) {
+        public static async Task InitializeMultiPlay(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -701,7 +702,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/finalizeMultiPlay.spd")]
-        public static async Task FinalizeMultiPlay(HttpContext httpContext) {
+        public static async Task FinalizeMultiPlay(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);
@@ -738,7 +739,7 @@ namespace HtcPlugin.DeSServer.Controller {
         }
 
         [HttpPost("/cgi-bin/updateOtherPlayerGrade.spd")]
-        public static async Task UpdateOtherPlayerGrade(HttpContext httpContext) {
+        public static async Task UpdateOtherPlayerGrade(HtcHttpContext httpContext) {
             string dataRaw = await GetAndDecryptData(httpContext);
             PrintRequest(httpContext, dataRaw);
             Dictionary<string, string> data = ParamData(dataRaw);

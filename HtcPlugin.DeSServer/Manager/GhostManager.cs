@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using HtcPlugin.DeSServer.Model;
-using HtcSharp.Core.Logging.Abstractions;
+using HtcSharp.Logging;
 
 namespace HtcPlugin.DeSServer.Manager {
     public class GhostManager {
